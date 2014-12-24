@@ -4,38 +4,35 @@
 
 namespace glsl {
 
+#define KEYWORD(...)
+#define OPERATOR(...)
+#define TYPENAME(...)
+
 // Types
 #define TYPE(X) kType_##X,
-#define KEYWORD(...)
-#define OPERATOR(...)
 enum {
     #include "lexemes.h"
 };
 #undef TYPE
-#undef KEYWORD
-#undef OPERATOR
+#define TYPE(...)
 
 // Keywords
+#undef KEYWORD
 #define KEYWORD(X) kKeyword_##X,
-#define TYPE(...)
-#define OPERATOR(...)
 enum {
     #include "lexemes.h"
 };
 #undef KEYWORD
-#undef TYPE
-#undef OPERATOR
+#define KEYWORD(...)
 
 // Operators
+#undef OPERATOR
 #define OPERATOR(X, ...) kOperator_##X,
-#define TYPE(...)
-#define KEYWORD(...)
 enum {
     #include "lexemes.h"
 };
 #undef OPERATOR
-#undef TYPE
-#undef KEYWORD
+#define OPERATOR(...)
 
 struct keywordInfo {
     const char *name;
@@ -45,6 +42,7 @@ struct keywordInfo {
 struct operatorInfo {
     const char *name;
     const char *string;
+    int precedence;
 };
 
 struct token {
@@ -54,13 +52,14 @@ struct token {
     const char *identifier() const;
 
     int type() const;
+    int precedence() const;
 
 private:
     friend struct lexer;
     friend struct parser;
     int m_type;
     int m_keyword;
-    int m_op;
+    int m_operator;
     std::string m_identifier;
     union {
         int asInt;
@@ -82,12 +81,19 @@ struct lexer {
 
     const char *error() const;
 
+    void backup();
+    void restore();
+
 protected:
+    friend struct parser;
     void read(token &out);
+    void read(token &out, bool);
+
     std::string readNumeric(bool isOctal, bool isHex);
 
 private:
     size_t m_position;
+    size_t m_backup;
     std::string m_data;
     std::string m_error;
 };

@@ -1,40 +1,36 @@
 #include <string.h>
+#include <stdlib.h>
+
 #include "lexer.h"
 
 namespace glsl {
 
 // Lookup table of keywords
-#define TYPE(...)
-#define OPERATOR(...)
+#undef KEYWORD
 #define KEYWORD(X) { #X, kKeyword_##X },
 static const keywordInfo kKeywords[] = {
     #include "lexemes.h"
 };
-#undef TYPE
-#undef OPERATOR
 #undef KEYWORD
+#define KEYWORD(...)
 
 // Lookup table of operators
-#define TYPE(...)
-#define KEYWORD(...)
-#define OPERATOR(X, S) { #X, S },
+#undef OPERATOR
+#define OPERATOR(X, S, PREC) { #X, S, PREC },
 static const operatorInfo kOperators[] = {
     #include "lexemes.h"
 };
 #undef OPERATOR
-#undef TYPE
-#undef KEYWORD
+#define OPERATOR(...)
 
 // Lookup table of token names
+#undef TYPE
 #define TYPE(X) #X,
-#define KEYWORD(...)
-#define OPERATOR(...)
 static const char *kTokenNames[] = {
     #include "lexemes.h"
 };
 #undef TYPE
-#undef KEYWORD
-#undef OPERATOR
+#define TYPE(...)
 
 // Utilities
 #define is_digit(X) (((unsigned)(X)-'0') < 10)
@@ -106,7 +102,7 @@ void lexer::read(token &out) {
             } else if ((m_data[m_position] == 'l' && ch1 == 'f') || (m_data[m_position] == 'L' && ch1 == 'F')) {
                 isFloat = false;
                 isDouble = true;
-            } else if (m_data[m_position] == 'u' | m_data[m_position] == 'U') {
+            } else if (m_data[m_position] == 'u' || m_data[m_position] == 'U') {
                 if (isFloat) {
                     m_error = "invalid use of suffix on literal";
                     return;
@@ -127,20 +123,21 @@ void lexer::read(token &out) {
         int base = isHex ? 16 : (isOctal ? 8 : 10);
         if (isFloat) {
             out.m_type = kType_constant_float;
-            out.asFloat = 0.0f; // TODO:
+            out.asFloat = strtof(numeric.c_str(), 0);
         } else if (isDouble) {
             out.m_type = kType_constant_double;
-            out.asDouble = 0.0; // TODO:
+            out.asDouble = strtof(numeric.c_str(), 0);
         } else if (isUnsigned) {
             out.m_type = kType_constant_uint;
-            out.asUnsigned = 0; // TODO:
+            out.asUnsigned = strtoul(numeric.c_str(), 0, base);
         } else {
             out.m_type = kType_constant_int;
-            out.asInt = 0; // TODO:
+            out.asInt = strtol(numeric.c_str(), 0, base);
         }
     } else if (is_char(m_data[m_position]) || m_data[m_position] == '_') {
         // Identifiers
         out.m_type = kType_identifier;
+        out.m_identifier.clear();
         while (m_position != m_data.length() &&
             (is_char(m_data[m_position]) || is_digit(m_data[m_position]) || m_data[m_position] == '_'))
         {
@@ -148,12 +145,12 @@ void lexer::read(token &out) {
             m_position++;
         }
 
-        for (int i = 0; i < sizeof(kKeywords)/sizeof(kKeywords[0]); i++) {
+        for (size_t i = 0; i < sizeof(kKeywords)/sizeof(kKeywords[0]); i++) {
             if (strcmp(kKeywords[i].name, out.m_identifier.c_str()))
                 continue;
             out.m_type = kType_keyword;
-            out.m_keyword = i;
-            out.m_identifier.clear();
+            out.m_keyword = int(i);
+            //out.m_identifier.clear();
         }
     } else {
         switch (m_data[m_position]) {
@@ -184,25 +181,25 @@ void lexer::read(token &out) {
         // Operators
         case '.':
             out.m_type = kType_operator;
-            out.m_op = kOperator_dot;
+            out.m_operator = kOperator_dot;
             break;
         case '+':
             out.m_type = kType_operator;
             if (ch1 == '+')
-                out.m_op = kOperator_increment;
+                out.m_operator = kOperator_increment;
             else if (ch1 == '=')
-                out.m_op = kOperator_add_assign;
+                out.m_operator = kOperator_add_assign;
             else
-                out.m_op = kOperator_plus;
+                out.m_operator = kOperator_plus;
             break;
         case '-':
             out.m_type = kType_operator;
             if (ch1 == '-')
-                out.m_op = kOperator_decrement;
+                out.m_operator = kOperator_decrement;
             else if (ch1 == '=')
-                out.m_op = kOperator_sub_assign;
+                out.m_operator = kOperator_sub_assign;
             else
-                out.m_op = kOperator_minus;
+                out.m_operator = kOperator_minus;
             break;
         case '/':
             if (ch1 == '/') {
@@ -227,120 +224,120 @@ void lexer::read(token &out) {
                 out.m_type = kType_comment;
             } else if (ch1 == '=') {
                 out.m_type = kType_operator;
-                out.m_op = kOperator_divide_assign;
+                out.m_operator = kOperator_divide_assign;
             } else {
                 out.m_type = kType_operator;
-                out.m_op = kOperator_divide;
+                out.m_operator = kOperator_divide;
             }
             break;
         case '*':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_op = kOperator_multiply_assign;
+                out.m_operator = kOperator_multiply_assign;
             else
-                out.m_op = kOperator_multiply;
+                out.m_operator = kOperator_multiply;
             break;
         case '%':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_op = kOperator_modulus_assign;
+                out.m_operator = kOperator_modulus_assign;
             else
-                out.m_op = kOperator_modulus;
+                out.m_operator = kOperator_modulus;
             break;
         case '<':
             out.m_type = kType_operator;
             if (ch1 == '<' && ch2 == '=')
-                out.m_op = kOperator_shift_left_assign;
+                out.m_operator = kOperator_shift_left_assign;
             else if (ch1 == '<')
-                out.m_op = kOperator_shift_left;
+                out.m_operator = kOperator_shift_left;
             else if (ch1 == '=')
-                out.m_op = kOperator_less_equal;
+                out.m_operator = kOperator_less_equal;
             else
-                out.m_op = kOperator_less;
+                out.m_operator = kOperator_less;
             break;
         case '>':
             out.m_type = kType_operator;
             if (ch1 == '>' && ch2 == '=')
-                out.m_op = kOperator_shift_right_assign;
+                out.m_operator = kOperator_shift_right_assign;
             else if (ch1 == '>')
-                out.m_op == kOperator_shift_right;
+                out.m_operator = kOperator_shift_right;
             else if (ch1 == '=')
-                out.m_op = kOperator_greater_equal;
+                out.m_operator = kOperator_greater_equal;
             else
-                out.m_op = kOperator_greater;
+                out.m_operator = kOperator_greater;
             break;
         case '[':
             out.m_type = kType_operator;
-            out.m_op = kOperator_bracket_begin;
+            out.m_operator = kOperator_bracket_begin;
             break;
         case ']':
             out.m_type = kType_operator;
-            out.m_op = kOperator_bracket_end;
+            out.m_operator = kOperator_bracket_end;
             break;
         case '(':
             out.m_type = kType_operator;
-            out.m_op = kOperator_paranthesis_begin;
+            out.m_operator = kOperator_paranthesis_begin;
             break;
         case ')':
             out.m_type = kType_operator;
-            out.m_op = kOperator_paranthesis_end;
+            out.m_operator = kOperator_paranthesis_end;
             break;
         case '^':
             out.m_type = kType_operator;
             if (ch1 == '^')
-                out.m_op = kOperator_logical_xor;
+                out.m_operator = kOperator_logical_xor;
             else if (ch1 == '=')
-                out.m_op = kOperator_bit_xor_assign;
+                out.m_operator = kOperator_bit_xor_assign;
             else
-                out.m_op = kOperator_bit_xor;
+                out.m_operator = kOperator_bit_xor;
             break;
         case '|':
             out.m_type = kType_operator;
             if (ch1 == '|')
-                out.m_op = kOperator_logical_or;
+                out.m_operator = kOperator_logical_or;
             else if (ch1 == '=')
-                out.m_op = kOperator_bit_or_assign;
+                out.m_operator = kOperator_bit_or_assign;
             else
-                out.m_op = kOperator_bit_or;
+                out.m_operator = kOperator_bit_or;
             break;
         case '&':
             out.m_type = kType_operator;
             if (ch1 == '&')
-                out.m_op = kOperator_logical_and;
+                out.m_operator = kOperator_logical_and;
             else if (ch1 == '=')
-                out.m_op = kOperator_bit_and_assign;
+                out.m_operator = kOperator_bit_and_assign;
             else
-                out.m_op = kOperator_bit_and;
+                out.m_operator = kOperator_bit_and;
             break;
         case '~':
             out.m_type = kType_operator;
-            out.m_op = kOperator_bit_not;
+            out.m_operator = kOperator_bit_not;
             break;
         case '=':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_op = kOperator_equal;
+                out.m_operator = kOperator_equal;
             else
-                out.m_op = kOperator_assign;
+                out.m_operator = kOperator_assign;
             break;
         case '!':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_op = kOperator_not_equal;
+                out.m_operator = kOperator_not_equal;
             else
-                out.m_op = kOperator_logical_not;
+                out.m_operator = kOperator_logical_not;
             break;
         case ':':
             out.m_type = kType_operator;
-            out.m_op = kOperator_colon;
+            out.m_operator = kOperator_colon;
             break;
         case ',':
             out.m_type = kType_operator;
-            out.m_op = kOperator_comma;
+            out.m_operator = kOperator_comma;
             break;
         case '?':
             out.m_type = kType_operator;
-            out.m_op = kOperator_questionmark;
+            out.m_operator = kOperator_questionmark;
             break;
         default:
             m_error = "invalid character encountered";
@@ -348,7 +345,7 @@ void lexer::read(token &out) {
         }
         // Skip whitespace for operator
         if (out.m_type == kType_operator)
-            m_position += strlen(kOperators[out.m_op].string);
+            m_position += strlen(kOperators[out.m_operator].string);
     }
 }
 
@@ -369,26 +366,31 @@ std::string lexer::readNumeric(bool isOctal, bool isHex) {
 
 token lexer::peek() {
     token out;
-    // Record the position to restore it later
     const size_t record = m_position;
-    // Ignore whitespace and comment tokens when peeking
-    do {
-        read(out);
-    } while (out.m_type == kType_whitespace || out.m_type == kType_comment);
+    read(out);
     m_position = record;
     return out;
 }
 
-token lexer::read() {
-    token out;
-    read(out);
-    return out;
+void lexer::read(token &out, bool) {
+    do {
+        read(out);
+    } while (out.m_type == kType_whitespace || out.m_type == kType_comment);
 }
 
 const char *lexer::error() const {
     return m_error.size() ? m_error.c_str() : NULL;
 }
 
+void lexer::backup() {
+    m_backup = m_position;
+}
+
+void lexer::restore() {
+    m_position = m_backup;
+}
+
+/// token
 const char *token::name() const {
     return kTokenNames[m_type];
 }
@@ -398,11 +400,15 @@ const keywordInfo *token::keyword() const {
 }
 
 const operatorInfo *token::oper() const {
-    return &kOperators[m_op];
+    return &kOperators[m_operator];
 }
 
 const char *token::identifier() const {
     return m_identifier.c_str();
+}
+
+int token::precedence() const {
+    return oper()->precedence;
 }
 
 }
