@@ -263,7 +263,7 @@ static void printIfStetement(astIfStatement *statement) {
     printStatement(statement->thenStatement);
     print("}");
     if (statement->elseStatement) {
-        print(" else {");
+        print(" else {\n");
         printStatement(statement->elseStatement);
         print("}\n");
     } else {
@@ -346,33 +346,33 @@ static void printDiscardStatement(astDiscardStatement *statement) {
 static void printStatement(astStatement *statement) {
     switch (statement->type) {
         case astStatement::kCompound:
-            return printCompoundStatement((astCompoundStatement *)statement);
+            return printCompoundStatement((astCompoundStatement*)statement);
         case astStatement::kEmpty:
-            return printEmptyStatement((astEmptyStatement *)statement);
+            return printEmptyStatement((astEmptyStatement*)statement);
         case astStatement::kDeclaration:
-            return printDeclarationStatement((astDeclarationStatement *)statement);
+            return printDeclarationStatement((astDeclarationStatement*)statement);
         case astStatement::kExpression:
-            return printExpressionStatement((astExpressionStatement *)statement);
+            return printExpressionStatement((astExpressionStatement*)statement);
         case astStatement::kIf:
-            return printIfStetement((astIfStatement *)statement);
+            return printIfStetement((astIfStatement*)statement);
         case astStatement::kSwitch:
-            return printSwitchStatement((astSwitchStatement *)statement);
+            return printSwitchStatement((astSwitchStatement*)statement);
         case astStatement::kCaseLabel:
-            return printCaseLabelStatement((astCaseLabelStatement *)statement);
+            return printCaseLabelStatement((astCaseLabelStatement*)statement);
         case astStatement::kWhile:
-            return printWhileStatement((astWhileStatement *)statement);
+            return printWhileStatement((astWhileStatement*)statement);
         case astStatement::kDo:
-            return printDoStatement((astDoStatement *)statement);
+            return printDoStatement((astDoStatement*)statement);
         case astStatement::kFor:
-            return printForStatement((astForStatement *)statement);
+            return printForStatement((astForStatement*)statement);
         case astStatement::kContinue:
-            return printContinueStatement((astContinueStatement *)statement);
+            return printContinueStatement((astContinueStatement*)statement);
         case astStatement::kBreak:
-            return printBreakStatement((astBreakStatement *)statement);
+            return printBreakStatement((astBreakStatement*)statement);
         case astStatement::kReturn:
-            return printReturnStatement((astReturnStatement *)statement);
+            return printReturnStatement((astReturnStatement*)statement);
         case astStatement::kDiscard:
-            return printDiscardStatement((astDiscardStatement *)statement);
+            return printDiscardStatement((astDiscardStatement*)statement);
     }
     print("\n");
 }
@@ -388,9 +388,9 @@ static void printFunctionParameter(astFunctionParameter *parameter) {
         print("out ");
 
     switch (parameter->precision) {
-        case kLowp:     print("lowp "); break;
-        case kMediump:  print("mediump "); break;
-        case kHighp:    print("highp "); break;
+        case kLowp:    print("lowp "); break;
+        case kMediump: print("mediump "); break;
+        case kHighp:   print("highp "); break;
     }
     printType(parameter->type);
     print(" %s", parameter->name.c_str());
@@ -431,7 +431,7 @@ int main() {
                          "  a += 1, b = 2;"
                          "  a = 100;"
                          "  c[0] = 1;"
-                         "  if (1) { }"
+                         "  if (1) { ; } else { ; }"
                          "}";
     parser p(source);
     astTU *tu = p.parse();

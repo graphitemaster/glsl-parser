@@ -367,7 +367,7 @@ std::string lexer::readNumeric(bool isOctal, bool isHex) {
 token lexer::peek() {
     token out;
     const size_t record = m_position;
-    read(out);
+    read(out, true);
     m_position = record;
     return out;
 }

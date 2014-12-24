@@ -598,8 +598,6 @@ astFunction *parser::parseFunction(const stage &parse) {
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
         astFunctionParameter *parameter = new(gc<astVariable>()) astFunctionParameter();
-        parameter->precision = kHighp; // TODO: memory qualifier
-
         while (!isOperator(kOperator_comma) && !isOperator(kOperator_paranthesis_end)) {
             if (isKeyword(kKeyword_in))
                 parameter->flags |= kIn;
@@ -614,8 +612,7 @@ astFunction *parser::parseFunction(const stage &parse) {
             else if (isKeyword(kKeyword_lowp))
                 parameter->precision = kLowp;
             else if (isType(kType_identifier)) {
-                //TODO: user types
-                //if (!parameter->type && !(parameter->type = findType(m_token.m_identifier)))
+                // TODO: user defined types
                 parameter->name = m_token.m_identifier;
             } else if (isOperator(kOperator_bracket_begin)) {
                 parameter->arraySize = parseArraySize();
@@ -637,18 +634,15 @@ astFunction *parser::parseFunction(const stage &parse) {
         function->isPrototype = false;
         next(); // skip '{'
 
-        // Create a new lexical scope and push back the function parameters
         m_scopes.push_back(scope());
         for (size_t i = 0; i < function->parameters.size(); i++)
             m_scopes.back().push_back(function->parameters[i]);
 
-        // Parse the statements
         while (!isType(kType_scope_end)) {
             function->statements.push_back(parseStatement());
             next(); // skip ';'
         }
 
-        // Leave the lexical scope
         m_scopes.pop_back();
     } else if (isType(kType_semicolon)) {
         function->isPrototype = true;
