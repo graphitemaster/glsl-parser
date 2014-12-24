@@ -292,8 +292,8 @@ astSequenceExpression::astSequenceExpression()
 {
 }
 
-astAssignmentExpression::astAssignmentExpression(int assignment, int type)
-    : astBinaryExpression(type)
+astAssignmentExpression::astAssignmentExpression(int assignment)
+    : astBinaryExpression(astExpression::kAssign)
     , assignment(assignment)
 {
 }

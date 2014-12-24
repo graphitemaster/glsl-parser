@@ -730,6 +730,18 @@ astBinaryExpression *parser::createExpression() {
             return new(gc<astExpression>()) astMinusExpression();
         case kOperator_plus:
             return new(gc<astExpression>()) astPlusExpression();
+        case kOperator_assign:
+        case kOperator_add_assign:
+        case kOperator_sub_assign:
+        case kOperator_multiply_assign:
+        case kOperator_divide_assign:
+        case kOperator_modulus_assign:
+        case kOperator_shift_left_assign:
+        case kOperator_shift_right_assign:
+        case kOperator_bit_and_assign:
+        case kOperator_bit_xor_assign:
+        case kOperator_bit_or_assign:
+            return new(gc<astExpression>()) astAssignmentExpression(m_token.m_operator);
         default:
             return 0;
     }

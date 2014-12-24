@@ -119,9 +119,12 @@ enum {
     kConst = 1 << 0,
     kIn = 1 << 1,
     kOut = 1 << 2,
+
+    // Auxiliary storage qualifiers
     kCentroid = 1 << 3,
-    kPatch = 1 << 4,
     kSample = 1 << 5,
+    kPatch = 1 << 4,
+
     kUniform = 1 << 6,
     kInvariant = 1 << 7
 };
@@ -298,7 +301,8 @@ struct astExpression : astNode<astExpression> {
         kPrefixDecrement,
         kSequence,
         kPlus,
-        kMinus
+        kMinus,
+        kAssign
     };
     int type;
 };
@@ -407,7 +411,7 @@ struct astSequenceExpression : astBinaryExpression {
 };
 
 struct astAssignmentExpression : astBinaryExpression {
-    astAssignmentExpression(int assignment, int type);
+    astAssignmentExpression(int assignment);
     int assignment;
 };
 

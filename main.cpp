@@ -12,6 +12,14 @@ static const char *kTypes[] = {
 #undef KEYWORD
 #define KEYWORD(...)
 
+#undef OPERATOR
+#define OPERATOR(N, S, P) S,
+static const char *kOperators[] = {
+    #include "lexemes.h"
+};
+#undef OPERATOR
+#define OPERATOR(...)
+
 #define print(...) \
     do { \
         printf(__VA_ARGS__); \
@@ -107,7 +115,13 @@ static void printVariableIdentifier(astVariableIdentifier *expression) {
 }
 
 static void printFieldOrSwizzle(astFieldOrSwizzle *expression) { }
-static void printArraySubscript(astArraySubscript *expression) { }
+
+static void printArraySubscript(astArraySubscript *expression) {
+    printExpression(expression->operand);
+    print("[");
+    printExpression(expression->index);
+    print("]");
+}
 
 static void printFunctionCall(astFunctionCall *expression) {
     print("%s(", expression->name.c_str());
@@ -140,6 +154,18 @@ static void printUnaryBitNot(astUnaryBitNotExpression *expression) { }
 static void printUnaryLogicalNot(astUnaryLogicalNotExpression *expression) { }
 static void printPrefixIncrement(astPrefixIncrementExpression *expression) { }
 static void printPrefixDecrement(astPrefixDecrementExpression *expression) { }
+
+static void printAssign(astAssignmentExpression *expression) {
+    printExpression(expression->operand1);
+    print(" %s ", kOperators[expression->assignment]);
+    printExpression(expression->operand2);
+}
+
+static void printSequence(astSequenceExpression *expression) {
+    printExpression(expression->operand1);
+    printf(", ");
+    printExpression(expression->operand2);
+}
 
 static void printExpression(astExpression *expression) {
     switch (expression->type) {
@@ -179,6 +205,10 @@ static void printExpression(astExpression *expression) {
             return printPrefixIncrement((astPrefixIncrementExpression*)expression);
         case astExpression::kPrefixDecrement:
             return printPrefixDecrement((astPrefixDecrementExpression*)expression);
+        case astExpression::kAssign:
+            return printAssign((astAssignmentExpression*)expression);
+        case astExpression::kSequence:
+            return printSequence((astSequenceExpression*)expression);
     }
 }
 
@@ -192,6 +222,7 @@ static void printDeclarationStatement(astDeclarationStatement *statement) {
 
 static void printExpressionStatement(astExpressionStatement *statement) {
     printExpression(statement->expression);
+    print(";\n");
 }
 
 static void printIfStetement(astIfStatement *statement) {}
@@ -353,6 +384,9 @@ int main() {
                          "in smooth float d;"
                          "void function(float passed) {"
                          "  float aa, bb, cc;"
+                         "  a += 1, b = 2;"
+                         "  a = 100;"
+                         "  c[0] = 1;"
                          "}";
     parser p(source);
     astTU *tu = p.parse();
