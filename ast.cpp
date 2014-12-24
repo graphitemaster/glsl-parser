@@ -298,13 +298,9 @@ astAssignmentExpression::astAssignmentExpression(int assignment)
 {
 }
 
-astPlusExpression::astPlusExpression()
-    : astBinaryExpression(astExpression::kPlus)
-{
-}
-
-astMinusExpression::astMinusExpression()
-    : astBinaryExpression(astExpression::kMinus)
+astOperationExpression::astOperationExpression(int operation)
+    : astBinaryExpression(astExpression::kOperation)
+    , operation(operation)
 {
 }
 

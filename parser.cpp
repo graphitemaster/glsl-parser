@@ -532,8 +532,6 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
         variable->type = type;
         variable->name = name;
         variable->initialValue = initialValue;
-        variable->isArray = false;
-        variable->arraySize = 0;
         statement->variables.push_back(variable);
         m_scopes.back().push_back(variable);
 
@@ -718,12 +716,25 @@ astBinaryExpression *parser::createExpression() {
         fatal("internal compiler error: attempted to create binary expression in wrong context");
 
     switch (m_token.m_operator) {
-        case kOperator_comma:
-            return new(gc<astExpression>()) astSequenceExpression();
-        case kOperator_minus:
-            return new(gc<astExpression>()) astMinusExpression();
+        case kOperator_multiply:
+        case kOperator_divide:
+        case kOperator_modulus:
         case kOperator_plus:
-            return new(gc<astExpression>()) astPlusExpression();
+        case kOperator_minus:
+        case kOperator_shift_left:
+        case kOperator_shift_right:
+        case kOperator_less:
+        case kOperator_greater:
+        case kOperator_less_equal:
+        case kOperator_greater_equal:
+        case kOperator_equal:
+        case kOperator_not_equal:
+        case kOperator_bit_and:
+        case kOperator_bit_xor:
+        case kOperator_logical_and:
+        case kOperator_logical_xor:
+        case kOperator_logical_or:
+            return new(gc<astExpression>()) astOperationExpression(m_token.m_operator);
         case kOperator_assign:
         case kOperator_add_assign:
         case kOperator_sub_assign:
@@ -736,6 +747,8 @@ astBinaryExpression *parser::createExpression() {
         case kOperator_bit_xor_assign:
         case kOperator_bit_or_assign:
             return new(gc<astExpression>()) astAssignmentExpression(m_token.m_operator);
+        case kOperator_comma:
+            return new(gc<astExpression>()) astSequenceExpression();
         default:
             return 0;
     }

@@ -1,5 +1,5 @@
-#include <set>
 #include <stdio.h>
+
 #include "parser.h"
 
 using namespace glsl;
@@ -114,7 +114,10 @@ static void printVariableIdentifier(astVariableIdentifier *expression) {
     printVariable(expression->variable, true);
 }
 
-static void printFieldOrSwizzle(astFieldOrSwizzle *expression) { }
+static void printFieldOrSwizzle(astFieldOrSwizzle *expression) {
+    printExpression(expression->operand);
+    print(".%s", expression->name.c_str());
+}
 
 static void printArraySubscript(astArraySubscript *expression) {
     printExpression(expression->operand);
@@ -198,6 +201,12 @@ static void printSequence(astSequenceExpression *expression) {
     printExpression(expression->operand2);
 }
 
+static void printOperation(astOperationExpression *expression) {
+    printExpression(expression->operand1);
+    printf(" %s ", kOperators[expression->operation]);
+    printExpression(expression->operand2);
+}
+
 static void printExpression(astExpression *expression) {
     switch (expression->type) {
         case astExpression::kIntConstant:
@@ -240,11 +249,21 @@ static void printExpression(astExpression *expression) {
             return printAssign((astAssignmentExpression*)expression);
         case astExpression::kSequence:
             return printSequence((astSequenceExpression*)expression);
+        case astExpression::kOperation:
+            return printOperation((astOperationExpression*)expression);
     }
 }
 
-static void printCompoundStatement(astCompoundStatement *statement) {}
-static void printEmptyStatement(astEmptyStatement *statement) {}
+static void printCompoundStatement(astCompoundStatement *statement) {
+    print(" {\n");
+    for (size_t i = 0; i < statement->statements.size(); i++)
+        printStatement(statement->statements[i]);
+    print("}\n");
+}
+
+static void printEmptyStatement(astEmptyStatement *statement) {
+    print(";");
+}
 
 static void printDeclarationStatement(astDeclarationStatement *statement) {
     for (size_t i = 0; i < statement->variables.size(); i++)
@@ -259,15 +278,13 @@ static void printExpressionStatement(astExpressionStatement *statement) {
 static void printIfStetement(astIfStatement *statement) {
     print("if(");
     printExpression(statement->condition);
-    print(") {\n");
+    print(")");
     printStatement(statement->thenStatement);
-    print("}");
     if (statement->elseStatement) {
-        print(" else {\n");
+        print("else");
+        if (statement->elseStatement->type == astStatement::kIf)
+            print(" ");
         printStatement(statement->elseStatement);
-        print("}\n");
-    } else {
-        print("\n");
     }
 }
 
@@ -293,15 +310,14 @@ static void printCaseLabelStatement(astCaseLabelStatement *statement) {
 static void printWhileStatement(astWhileStatement *statement) {
     print("while(");
     printExpression((astExpression*)statement->condition);
-    print(") {\n");
+    print(")");
     printStatement(statement->body);
-    print("}\n");
 }
 
 static void printDoStatement(astDoStatement *statement) {
-    print("do {\n");
+    print("do");
     printStatement(statement->body);
-    print("} while(");
+    print("while(");
     printExpression(statement->condition);
     print(");\n");
 }
@@ -316,9 +332,8 @@ static void printForStatement(astForStatement *statement) {
     print("; ");
     if (statement->loop)
         printExpression(statement->loop);
-    print(") {\n");
+    print(")");
     printStatement(statement->body);
-    print("}\n");
 }
 
 static void printContinueStatement(astContinueStatement *statement) {
@@ -393,7 +408,8 @@ static void printFunctionParameter(astFunctionParameter *parameter) {
         case kHighp:   print("highp "); break;
     }
     printType(parameter->type);
-    print(" %s", parameter->name.c_str());
+    if (parameter->name.size())
+        print(" %s", parameter->name.c_str());
     if (parameter->isArray) {
         print("[");
         printExpression(parameter->arraySize);
@@ -407,12 +423,14 @@ static void printFunction(astFunction *function) {
     for (size_t i = 0; i < function->parameters.size(); i++)
         printFunctionParameter(function->parameters[i]);
     print(")");
-    if (function->isPrototype)
+    if (function->isPrototype) {
+        print(";\n");
         return;
-    print(" {\n");
+    }
+    print("{\n");
     for (size_t i = 0; i < function->statements.size(); i++)
         printStatement(function->statements[i]);
-    print("}\n");
+    print("\n}\n");
 }
 
 static void printTU(astTU *tu) {
@@ -422,20 +440,33 @@ static void printTU(astTU *tu) {
         printFunction(tu->functions[i]);
 }
 
-int main() {
-    const char *source = "float a, b, c[2];"
-                         "uniform sampler2D test;"
-                         "in smooth float d;"
-                         "void function(float passed) {"
-                         "  float aa, bb, cc;"
-                         "  a += 1, b = 2;"
-                         "  a = 100;"
-                         "  c[0] = 1;"
-                         "  if (1) { ; } else { ; }"
-                         "}";
-    parser p(source);
-    astTU *tu = p.parse();
-    printTU(tu);
+int main(int argc, char **argv) {
+    argc--;
+    argv++;
+    if (!argc) {
+        fprintf(stderr, "expected source file\n");
+        return 1;
+    }
 
+    FILE *fp = fopen(argv[0], "r");
+    if (!fp) {
+        fprintf(stderr, "failed to open `%s\n", argv[0]);
+        return 1;
+    }
+
+    fseek(fp, 0, SEEK_END);
+    size_t length = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+
+    std::string source;
+    source.resize(length);
+    if (fread(&source[0], length, 1, fp) != 1) {
+        fprintf(stderr, "failed to read source\n");
+        fclose(fp);
+        return 1;
+    }
+    fclose(fp);
+
+    printTU(parser(source).parse());
     return 0;
 }
