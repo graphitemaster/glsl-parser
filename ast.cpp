@@ -21,6 +21,43 @@ const char *astStatement::name() const {
     return "(unknown)";
 }
 
+astType::astType(bool builtin)
+    : builtin(builtin)
+{
+}
+
+astBuiltin::astBuiltin(int type)
+    : astType(true)
+    , type(type)
+{
+}
+
+astVariable::astVariable()
+    : type(0)
+    , isArray(false)
+    , arraySize(0)
+{
+}
+
+astFunctionVariable::astFunctionVariable()
+    : isConst(false)
+    , initialValue(0)
+{
+}
+
+astFunctionParameter::astFunctionParameter()
+    : flags(0)
+    , precision(-1)
+{
+}
+
+astGlobalVariable::astGlobalVariable()
+    : flags(0)
+    , interpolation(-1)
+    , precision(-1)
+{
+}
+
 astSimpleStatement::astSimpleStatement(int type)
     : astStatement(type)
 {
@@ -41,6 +78,16 @@ astDeclarationStatement::astDeclarationStatement()
 {
 }
 
+astDeclaration::astDeclaration()
+    : variable(0)
+{
+}
+
+astStatement::astStatement(int type)
+    : type(type)
+{
+}
+
 astExpressionStatement::astExpressionStatement(astExpression *expression)
     : astSimpleStatement(astStatement::kExpression)
     , expression(expression)
@@ -49,16 +96,22 @@ astExpressionStatement::astExpressionStatement(astExpression *expression)
 
 astIfStatement::astIfStatement()
     : astSimpleStatement(astStatement::kIf)
+    , condition(0)
+    , thenStatement(0)
+    , elseStatement(0)
 {
 }
 
 astSwitchStatement::astSwitchStatement()
     : astSimpleStatement(astStatement::kSwitch)
+    , expression(0)
 {
 }
 
 astCaseLabelStatement::astCaseLabelStatement()
     : astSimpleStatement(astStatement::kCaseLabel)
+    , condition(0)
+    , isDefault(false)
 {
 }
 
@@ -69,11 +122,15 @@ astIterationStatement::astIterationStatement(int type)
 
 astWhileStatement::astWhileStatement()
     : astIterationStatement(astStatement::kWhile)
+    , condition(0)
+    , body(0)
 {
 }
 
 astDoStatement::astDoStatement()
     : astIterationStatement(astStatement::kDo)
+    , body(0)
+    , condition(0)
 {
 }
 
@@ -103,11 +160,17 @@ astBreakStatement::astBreakStatement()
 
 astReturnStatement::astReturnStatement()
     : astJumpStatement(astStatement::kReturn)
+    , expression(0)
 {
 }
 
 astDiscardStatement::astDiscardStatement()
     : astJumpStatement(astStatement::kDiscard)
+{
+}
+
+astExpression::astExpression(int type)
+    : type(type)
 {
 }
 
@@ -149,11 +212,14 @@ astVariableIdentifier::astVariableIdentifier(astVariable *variable)
 
 astFieldOrSwizzle::astFieldOrSwizzle()
     : astExpression(kFieldOrSwizzle)
+    , operand(0)
 {
 }
 
 astArraySubscript::astArraySubscript()
     : astExpression(kArraySubscript)
+    , operand(0)
+    , index(0)
 {
 }
 
@@ -164,6 +230,7 @@ astFunctionCall::astFunctionCall()
 
 astConstructorCall::astConstructorCall()
     : astExpression(astExpression::kConstructorCall)
+    , type(0)
 {
 }
 
@@ -175,6 +242,8 @@ astUnaryExpression::astUnaryExpression(int type, astExpression *operand)
 
 astBinaryExpression::astBinaryExpression(int type)
     : astExpression(type)
+    , operand1(0)
+    , operand2(0)
 {
 }
 
@@ -189,12 +258,12 @@ astPostDecrementExpression::astPostDecrementExpression(astExpression *operand)
 }
 
 astUnaryPlusExpression::astUnaryPlusExpression(astExpression *operand)
-    : astUnaryExpression(astExpression::kPlus, operand)
+    : astUnaryExpression(astExpression::kUnaryPlus, operand)
 {
 }
 
 astUnaryMinusExpression::astUnaryMinusExpression(astExpression *operand)
-    : astUnaryExpression(astExpression::kMinus, operand)
+    : astUnaryExpression(astExpression::kUnaryMinus, operand)
 {
 }
 
@@ -220,6 +289,22 @@ astPrefixDecrementExpression::astPrefixDecrementExpression(astExpression *operan
 
 astSequenceExpression::astSequenceExpression()
     : astBinaryExpression(astExpression::kSequence)
+{
+}
+
+astAssignmentExpression::astAssignmentExpression(int assignment, int type)
+    : astBinaryExpression(type)
+    , assignment(assignment)
+{
+}
+
+astPlusExpression::astPlusExpression()
+    : astBinaryExpression(astExpression::kPlus)
+{
+}
+
+astMinusExpression::astMinusExpression()
+    : astBinaryExpression(astExpression::kMinus)
 {
 }
 

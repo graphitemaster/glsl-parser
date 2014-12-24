@@ -65,9 +65,10 @@ struct astType;
 struct astGlobalVariable;
 struct astExpression;
 struct astLayoutQualifier;
+struct astStatement;
 
 struct astTU : astCollect<astTU> {
-    astTU() {}
+    astTU() { }
 
     std::vector<astFunction*> functions;
     std::vector<astType*> types;
@@ -79,7 +80,7 @@ private:
 };
 
 struct astType : astNode<astType> {
-    astType(bool builtin) : builtin(builtin) { }
+    astType(bool builtin);
     bool builtin;
 };
 
@@ -88,20 +89,20 @@ struct astStruct : astType {
 };
 
 struct astBuiltin : astType {
-    astBuiltin(int type) : astType(true), type(type) { }
+    astBuiltin(int type);
     int type; // kKeyword_*
 };
 
 typedef astExpression astConstantExpression;
 
-enum astPrecision {
+enum {
     kHighp,
     kMediump,
     kLowp
 };
 
 struct astVariable : astNode<astVariable> {
-    astVariable() {} // TODO:
+    astVariable();
     std::string name;
     astType *type;
     bool isArray;
@@ -109,7 +110,7 @@ struct astVariable : astNode<astVariable> {
 };
 
 struct astFunctionVariable : astVariable {
-    astFunctionVariable() {} // TODO:
+    astFunctionVariable();
     bool isConst;
     astExpression *initialValue;
 };
@@ -125,24 +126,25 @@ enum {
     kInvariant = 1 << 7
 };
 
-
 struct astFunctionParameter : astVariable {
-    astFunctionParameter() {} // TODO:
+    astFunctionParameter();
     int flags; // only kIn and kOut are valid here
     // TODO: memory qualifier
-    astPrecision precision;
+    int precision;
 };
-enum astInterpolation {
+
+enum {
     kSmooth,
     kFlat,
-    kPerspective
+    kNoPerspective
 };
 
 struct astGlobalVariable : astVariable {
+    astGlobalVariable();
     int flags;
-    astInterpolation interpolation;
+    int interpolation;
+    int precision;
     std::vector<astLayoutQualifier*> layoutQualifiers;
-    astPrecision precision;
 };
 
 struct astLayoutQualifier : astNode<astLayoutQualifier> {
@@ -150,7 +152,6 @@ struct astLayoutQualifier : astNode<astLayoutQualifier> {
     // TODO: implement layout qualifiers
 };
 
-struct astStatement;
 struct astFunction : astNode<astFunction> {
     astType *returnType;
     std::string name;
@@ -165,7 +166,7 @@ struct astDeclaration : astNode<astDeclaration> {
 };
 
 struct astStatement : astNode<astStatement> {
-    astStatement(int type) : type(type) { }
+    astStatement(int type);
     enum {
         kCompound,
         kEmpty,
@@ -274,7 +275,7 @@ struct astDiscardStatement : astJumpStatement {
 };
 
 struct astExpression : astNode<astExpression> {
-    astExpression(int type) : type(type) {}
+    astExpression(int type);
     // Base class
     enum {
         kIntConstant,
@@ -289,14 +290,15 @@ struct astExpression : astNode<astExpression> {
         kConstructorCall,
         kPostIncrement,
         kPostDecrement,
-        kMinus,
-        kPlus,
+        kUnaryMinus,
+        kUnaryPlus,
         kBitNot,
         kLogicalNot,
         kPrefixIncrement,
         kPrefixDecrement,
         kSequence,
-        kMultiply
+        kPlus,
+        kMinus
     };
     int type;
 };
@@ -402,6 +404,19 @@ struct astPrefixDecrementExpression : astUnaryExpression {
 
 struct astSequenceExpression : astBinaryExpression {
     astSequenceExpression();
+};
+
+struct astAssignmentExpression : astBinaryExpression {
+    astAssignmentExpression(int assignment, int type);
+    int assignment;
+};
+
+struct astPlusExpression : astBinaryExpression {
+    astPlusExpression();
+};
+
+struct astMinusExpression : astBinaryExpression {
+    astMinusExpression();
 };
 
 }

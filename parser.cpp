@@ -64,25 +64,30 @@ bool parser::isBuiltin() const {
 astTU *parser::parse() {
     m_ast = new astTU;
 
+    m_scopes.push_back(scope());
     for (;;) {
         m_lexer.read(m_token, true);
         if (isType(kType_eof))
             break;
 
-        stage parse = parseGlobalScope();
+        std::vector<stage> stages = parseGlobalScope();
+
         if (isType(kType_semicolon)) {
-            astGlobalVariable *global = new(gc<astVariable>()) astGlobalVariable();
-            global->flags = parse.flags;
-            global->interpolation = parse.interpolation;
-            global->precision = parse.precision;
-            global->type = parse.type;
-            global->name = parse.name;
-            global->isArray = parse.isArray;
-            global->arraySize = parse.arraySize;
-            m_ast->globals.push_back(global);
-            m_scopes.back().push_back(global);
+            for (size_t i = 0; i < stages.size(); i++) {
+                stage &parse = stages[i];
+                astGlobalVariable *global = new(gc<astVariable>()) astGlobalVariable();
+                global->flags = parse.flags;
+                global->interpolation = parse.interpolation;
+                global->precision = parse.precision;
+                global->type = parse.type;
+                global->name = parse.name;
+                global->isArray = parse.isArray;
+                global->arraySize = parse.arraySize;
+                m_ast->globals.push_back(global);
+                m_scopes.back().push_back(global);
+            }
         } else if (isOperator(kOperator_paranthesis_begin)) {
-            m_ast->functions.push_back(parseFunction(parse));
+            m_ast->functions.push_back(parseFunction(stages.front()));
         } else if (isType(kType_whitespace)) {
             continue; // whitespace tokens will be used later for the preprocessor
         } else {
@@ -93,8 +98,13 @@ astTU *parser::parse() {
     return m_ast;
 }
 
-stage parser::parseGlobalScope() {
+stage parser::parseGlobalItem(stage *continuation) {
     stage parse;
+
+    // Inherit the previous type if this is a continuation "T a, b, c;"
+    if (continuation)
+        parse = *continuation;
+
     if (isKeyword(kKeyword_const)) {
         parse.flags |= kConst;
         next(); // skip 'const'
@@ -158,15 +168,17 @@ stage parser::parseGlobalScope() {
         next(); // skip 'highp'
     }
 
-    if (isKeyword(kKeyword_struct)) {
-        parse.type = parseStruct();
-        next();
-    } else if (isType(kType_identifier)) {
-        parse.type = findType(m_token.m_identifier);
-        next();
-    } else {
-        parse.type = parseBuiltin();
-        next();
+    if (!continuation) {
+        if (isKeyword(kKeyword_struct)) {
+            parse.type = parseStruct();
+            next();
+        } else if (isType(kType_identifier)) {
+            parse.type = findType(m_token.m_identifier);
+            next();
+        } else {
+            parse.type = parseBuiltin();
+            next();
+        }
     }
 
     if (isType(kType_identifier)) {
@@ -178,8 +190,17 @@ stage parser::parseGlobalScope() {
         parse.arraySize = parseArraySize();
         next(); // skip ']' (parseArraySize skips '[')
     }
-
     return parse;
+}
+
+std::vector<stage> parser::parseGlobalScope() {
+    std::vector<stage> stages;
+    stages.push_back(parseGlobalItem());
+    while (isOperator(kOperator_comma)) {
+        next(); // skip ','
+        stages.push_back(parseGlobalItem(&stages.front()));
+    }
+    return stages;
 }
 
 void parser::parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers) {
@@ -520,8 +541,14 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
             break;
         else if (isOperator(kOperator_comma))
             next(); // skip ','
-        else
+        else if (isOperator(kOperator_bracket_begin)){
+            next(); // skip '['
+            variable->isArray = true;
+            variable->arraySize = parseExpression(kEndConditionBracket);
+            next(); // skip ']'
+        } else {
             fatal("syntax error (declaration)");
+        }
     }
 
     return statement;
@@ -572,11 +599,7 @@ astFunction *parser::parseFunction(const stage &parse) {
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
         astFunctionParameter *parameter = new(gc<astVariable>()) astFunctionParameter();
-        parameter->flags = 0;
         parameter->precision = kHighp; // TODO: memory qualifier
-        parameter->type = 0;
-        parameter->isArray = false;
-        parameter->arraySize = 0;
 
         while (!isOperator(kOperator_comma) && !isOperator(kOperator_paranthesis_end)) {
             if (isKeyword(kKeyword_in))
@@ -592,14 +615,17 @@ astFunction *parser::parseFunction(const stage &parse) {
             else if (isKeyword(kKeyword_lowp))
                 parameter->precision = kLowp;
             else if (isType(kType_identifier)) {
-                if (!(parameter->type = findType(m_token.m_identifier)))
-                    parameter->name = m_token.m_identifier;
-            } else if (isOperator(kOperator_bracket_begin))
+                //TODO: user types
+                //if (!parameter->type && !(parameter->type = findType(m_token.m_identifier)))
+                parameter->name = m_token.m_identifier;
+            } else if (isOperator(kOperator_bracket_begin)) {
                 parameter->arraySize = parseArraySize();
-            else
+            } else {
                 parameter->type = parseBuiltin();
+            }
             next();
         }
+
         if (!parameter->type)
             fatal("expected type");
         function->parameters.push_back(parameter);
@@ -701,7 +727,10 @@ astBinaryExpression *parser::createExpression() {
     switch (m_token.m_operator) {
         case kOperator_comma:
             return new(gc<astExpression>()) astSequenceExpression();
-        // TODO: binary operators
+        case kOperator_minus:
+            return new(gc<astExpression>()) astMinusExpression();
+        case kOperator_plus:
+            return new(gc<astExpression>()) astPlusExpression();
         default:
             return 0;
     }

@@ -68,6 +68,40 @@ static void printVariable(astVariable *variable, bool nameOnly = false) {
     }
 }
 
+static void printGlobalVariable(astGlobalVariable *variable) {
+    switch (variable->interpolation) {
+        case kSmooth:
+            print("smooth ");
+            break;
+        case kFlat:
+            print("flat ");
+            break;
+        case kNoPerspective:
+            print("noperspective ");
+    }
+
+    if (variable->flags & kConst)
+        print("const ");
+    else if (variable->flags & kUniform)
+        print("uniform ");
+    if (variable->flags & kInvariant)
+        print("invariant ");
+    if ((variable->flags & kIn) && (variable->flags & kOut))
+        print("inout ");
+    else if (variable->flags & kIn)
+        print("in ");
+    else if (variable->flags & kOut)
+        print("out ");
+    if (variable->flags & kCentroid)
+        print("centroid ");
+    else if (variable->flags & kSample)
+        print("sample ");
+    else if (variable->flags & kPatch)
+        print("patch ");
+    printVariable((astVariable*)variable);
+    print(";\n");
+}
+
 static void printVariableIdentifier(astVariableIdentifier *expression) {
     printVariable(expression->variable, true);
 }
@@ -133,9 +167,9 @@ static void printExpression(astExpression *expression) {
             return printPostIncrement((astPostIncrementExpression*)expression);
         case astExpression::kPostDecrement:
             return printPostDecrement((astPostDecrementExpression*)expression);
-        case astExpression::kMinus:
+        case astExpression::kUnaryMinus:
             return printUnaryMinus((astUnaryMinusExpression*)expression);
-        case astExpression::kPlus:
+        case astExpression::kUnaryPlus:
             return printUnaryPlus((astUnaryPlusExpression*)expression);
         case astExpression::kBitNot:
             return printUnaryBitNot((astUnaryBitNotExpression*)expression);
@@ -307,14 +341,19 @@ static void printFunction(astFunction *function) {
 }
 
 static void printTU(astTU *tu) {
+    for (size_t i = 0; i < tu->globals.size(); i++)
+        printGlobalVariable(tu->globals[i]);
     for (size_t i = 0; i < tu->functions.size(); i++)
         printFunction(tu->functions[i]);
 }
 
 int main() {
-    const char *source = "void foo() { float a = 1, b = 2, c = 3; switch(a) { case 1: break; }}"
-                         "void bar() { for (; 1; ) { }}";
-
+    const char *source = "float a, b, c[2];"
+                         "uniform sampler2D test;"
+                         "in smooth float d;"
+                         "void function(float passed) {"
+                         "  float aa, bb, cc;"
+                         "}";
     parser p(source);
     astTU *tu = p.parse();
     printTU(tu);

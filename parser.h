@@ -6,15 +6,25 @@
 namespace glsl {
 
 struct stage {
+    stage()
+        : flags(0)
+        , interpolation(-1)
+        , precision(-1)
+        , type(0)
+        , arraySize(0)
+        , isArray(false)
+    {
+    }
     int flags;
+    int interpolation;
+    int precision;
     std::vector<astLayoutQualifier*> layoutQualifiers;
-    astInterpolation interpolation;
-    astPrecision precision;
     astType *type;
     astConstantExpression *arraySize;
     bool isArray;
     std::string name;
 };
+
 
 struct parser {
     ~parser();
@@ -33,7 +43,9 @@ protected:
     typedef int endCondition;
 
     void next();
-    stage parseGlobalScope();
+
+    stage parseGlobalItem(stage *continuation = 0);
+    std::vector<stage> parseGlobalScope();
 
     bool isType(int type) const;
     bool isKeyword(int keyword) const;

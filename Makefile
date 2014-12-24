@@ -2,7 +2,8 @@ CXX ?= clang++
 CXXFLAGS = \
 	-fno-rtti \
 	-fno-exceptions \
-	-Wall
+	-Wall \
+	-g3
 
 BIN = test
 
