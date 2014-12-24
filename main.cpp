@@ -146,14 +146,45 @@ static void printFunctionVariable(astFunctionVariable *variable) {
     print(";\n");
 }
 
-static void printPostIncrement(astPostIncrementExpression *expression) { }
-static void printPostDecrement(astPostDecrementExpression *expression) { }
-static void printUnaryMinus(astUnaryMinusExpression *expression) { }
-static void printUnaryPlus(astUnaryPlusExpression *expression) { }
-static void printUnaryBitNot(astUnaryBitNotExpression *expression) { }
-static void printUnaryLogicalNot(astUnaryLogicalNotExpression *expression) { }
-static void printPrefixIncrement(astPrefixIncrementExpression *expression) { }
-static void printPrefixDecrement(astPrefixDecrementExpression *expression) { }
+static void printPostIncrement(astPostIncrementExpression *expression) {
+    printExpression((astExpression*)expression);
+    print("++");
+}
+
+static void printPostDecrement(astPostDecrementExpression *expression) {
+    printExpression((astExpression*)expression);
+    print("--");
+}
+
+static void printUnaryMinus(astUnaryMinusExpression *expression) {
+    print("-");
+    printExpression((astExpression*)expression);
+}
+
+static void printUnaryPlus(astUnaryPlusExpression *expression) {
+    print("+");
+    printExpression((astExpression*)expression);
+}
+
+static void printUnaryBitNot(astUnaryBitNotExpression *expression) {
+    print("~");
+    printExpression((astExpression*)expression);
+}
+
+static void printUnaryLogicalNot(astUnaryLogicalNotExpression *expression) {
+    print("!");
+    printExpression((astExpression*)expression);
+}
+
+static void printPrefixIncrement(astPrefixIncrementExpression *expression) {
+    print("++");
+    printExpression((astExpression*)expression);
+}
+
+static void printPrefixDecrement(astPrefixDecrementExpression *expression) {
+    print("--");
+    printExpression((astExpression*)expression);
+}
 
 static void printAssign(astAssignmentExpression *expression) {
     printExpression(expression->operand1);
@@ -225,7 +256,20 @@ static void printExpressionStatement(astExpressionStatement *statement) {
     print(";\n");
 }
 
-static void printIfStetement(astIfStatement *statement) {}
+static void printIfStetement(astIfStatement *statement) {
+    print("if(");
+    printExpression(statement->condition);
+    print(") {\n");
+    printStatement(statement->thenStatement);
+    print("}");
+    if (statement->elseStatement) {
+        print(" else {");
+        printStatement(statement->elseStatement);
+        print("}\n");
+    } else {
+        print("\n");
+    }
+}
 
 static void printSwitchStatement(astSwitchStatement *statement) {
     print("switch(");
@@ -387,6 +431,7 @@ int main() {
                          "  a += 1, b = 2;"
                          "  a = 100;"
                          "  c[0] = 1;"
+                         "  if (1) { }"
                          "}";
     parser p(source);
     astTU *tu = p.parse();
