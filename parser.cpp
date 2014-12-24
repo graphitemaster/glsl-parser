@@ -542,9 +542,8 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
         else if (isOperator(kOperator_comma))
             next(); // skip ','
         else if (isOperator(kOperator_bracket_begin)){
-            next(); // skip '['
             variable->isArray = true;
-            variable->arraySize = parseExpression(kEndConditionBracket);
+            variable->arraySize = parseArraySize();
             next(); // skip ']'
         } else {
             fatal("syntax error (declaration)");
