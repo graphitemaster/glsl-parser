@@ -45,11 +45,14 @@ bool parser::isEndCondition(endCondition condition) const {
 }
 
 void parser::fatal(const char *fmt, ...) {
+    char buffer[1024];
+    snprintf(buffer, sizeof(buffer), "<string>:%zu:%zu: error: ", m_lexer.line(), m_lexer.column());
+    m_error = buffer;
     va_list va;
     va_start(va, fmt);
-    fprintf(stderr, "<string>:%zu:%zu: error: ", m_lexer.line(), m_lexer.column());
-    vfprintf(stderr, fmt, va);
+    snprintf(buffer, sizeof(buffer), fmt, va);
     va_end(va);
+    m_error += buffer;
     longjmp(m_exit, 1);
 }
 

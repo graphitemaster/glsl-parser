@@ -485,7 +485,7 @@ int main(int argc, char **argv) {
     if (tu)
         printTU(tu);
     else
-        fprintf(stderr, "%s", p.error());
+        fprintf(stderr, "%s\n", p.error());
 
     return 0;
 }
