@@ -92,7 +92,7 @@ protected:
 
     size_t position() const;
 
-    int current() const;
+    int at(int offset = 0) const;
 
     void read(token &out);
     void read(token &out, bool);
