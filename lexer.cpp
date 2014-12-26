@@ -59,7 +59,7 @@ static inline bool isOctal(int ch) {
 }
 
 static inline bool isHex(int ch) {
-    return (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch >= 'F') || isDigit(ch);
+    return (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F') || isDigit(ch);
 }
 
 static inline bool isSpace(int ch) {
