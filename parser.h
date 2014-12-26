@@ -9,19 +9,21 @@ namespace glsl {
 
 struct stage {
     stage()
-        : flags(0)
-        , interpolation(-1)
+        : storage(-1)
+        , auxiliary(-1)
+        , memory(0)
         , precision(-1)
-        , memory(-1)
+        , interpolation(-1)
         , type(0)
         , arraySize(0)
         , isArray(false)
     {
     }
-    int flags;
-    int interpolation;
-    int precision;
+    int storage;
+    int auxiliary;
     int memory;
+    int precision;
+    int interpolation;
     std::vector<astLayoutQualifier*> layoutQualifiers;
     astType *type;
     astConstantExpression *arraySize;
@@ -48,6 +50,14 @@ protected:
     typedef int endCondition;
 
     void next();
+
+    void parseStorage(stage &current); // const, in, out, attribute, uniform, varying, buffer, shared
+    void parseAuxiliary(stage &current); // centroid, sample, patch
+    void parseInterpolation(stage &current); // smooth, flat, noperspective
+    void parsePrecision(stage &current); // highp, mediump, lowp
+    void parseInvariant(stage &current); // invariant
+    void parsePrecise(stage &current); // precise
+    void parseMemory(stage &current); // coherent, volatile, restrict, readonly, writeonly
 
     stage parseGlobalItem(stage *continuation = 0);
     std::vector<stage> parseGlobalScope();

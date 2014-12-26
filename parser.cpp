@@ -90,9 +90,11 @@ astTU *parser::parse() {
                 for (size_t i = 0; i < stages.size(); i++) {
                     stage &parse = stages[i];
                     astGlobalVariable *global = GC_NEW(astVariable) astGlobalVariable();
-                    global->flags = parse.flags;
-                    global->interpolation = parse.interpolation;
+                    global->storage = parse.storage;
+                    global->auxiliary = parse.auxiliary;
+                    global->memory = parse.memory;
                     global->precision = parse.precision;
+                    global->interpolation = parse.interpolation;
                     global->type = parse.type;
                     global->name = parse.name;
                     global->isArray = parse.isArray;
@@ -113,6 +115,113 @@ astTU *parser::parse() {
     return 0;
 }
 
+void parser::parseStorage(stage &current) {
+    // const, in, out, attribute, uniform, varying, buffer, shared
+    if (isKeyword(kKeyword_const)) {
+        current.storage = kConst;
+        next(); // skip 'const'
+    } else if (isKeyword(kKeyword_in)) {
+        current.storage = kIn;
+        next(); // skip 'in'
+    } else if (isKeyword(kKeyword_out)) {
+        current.storage = kOut;
+        next(); // skip 'out'
+    } else if (isKeyword(kKeyword_attribute)) {
+        current.storage = kAttribute;
+        next(); // skip 'attribute'
+    } else if (isKeyword(kKeyword_uniform)) {
+        current.storage = kUniform;
+        next(); // skip 'uniform'
+    } else if (isKeyword(kKeyword_varying)) {
+        current.storage = kVarying;
+        next(); // skip 'varying'
+    } else if (isKeyword(kKeyword_buffer)) {
+        current.storage = kBuffer;
+        next(); // skip 'buffer'
+    } else if (isKeyword(kKeyword_shared)) {
+        current.storage = kShared;
+        next(); // skip 'shared'
+    }
+}
+
+void parser::parseAuxiliary(stage &current) {
+    // centroid, sample, patch
+    if (isKeyword(kKeyword_centroid)) {
+        current.auxiliary = kCentroid;
+        next(); // skip 'centroid'
+    } else if (isKeyword(kKeyword_sample)) {
+        current.auxiliary = kSample;
+        next(); // skip 'sample'
+    } else if (isKeyword(kKeyword_patch)) {
+        current.auxiliary = kPatch;
+        next(); // skip 'patch'
+    }
+}
+
+void parser::parseInterpolation(stage &current) {
+    // smooth, flat, noperspective
+    if (isKeyword(kKeyword_smooth)) {
+        current.interpolation = kSmooth;
+        next(); // skip 'smooth'
+    } else if (isKeyword(kKeyword_flat)) {
+        current.interpolation = kFlat;
+        next(); // skip 'flat'
+    } else if (isKeyword(kKeyword_noperspective)) {
+        current.interpolation = kNoPerspective;
+        next(); // skip 'noperspective'
+    }
+}
+
+void parser::parsePrecision(stage &current) {
+    // highp, mediump, lowp
+    if (isKeyword(kKeyword_highp)) {
+        current.precision = kHighp;
+        next(); // skip 'highp'
+    } else if (isKeyword(kKeyword_mediump)) {
+        current.precision = kMediump;
+        next(); // skip 'mediump'
+    } else if (isKeyword(kKeyword_lowp)) {
+        current.precision = kLowp;
+        next(); // skip 'lowp'
+    }
+}
+
+void parser::parseInvariant(stage &current) {
+    // invariant
+    if (isKeyword(kKeyword_invariant)) {
+        // TODO:
+        next(); // skip 'invariant'
+    }
+}
+
+void parser::parsePrecise(stage &current) {
+    // precise
+    if (isKeyword(kKeyword_precise)) {
+        // TODO:
+        next(); // skip 'precise'
+    }
+}
+
+void parser::parseMemory(stage &current) {
+    // coherent, volatile, restrict, readonly, writeonly
+    if (isKeyword(kKeyword_coherent)) {
+        current.memory |= kCoherent;
+        next(); // skip 'coherent'
+    } else if (isKeyword(kKeyword_volatile)) {
+        current.memory |= kVolatile;
+        next(); // skip 'volatile'
+    } else if (isKeyword(kKeyword_restrict)) {
+        current.memory |= kRestrict;
+        next(); // skip 'restrict'
+    } else if (isKeyword(kKeyword_readonly)) {
+        current.memory |= kReadOnly;
+        next(); // skip 'readonly'
+    } else if (isKeyword(kKeyword_writeonly)) {
+        current.memory |= kWriteOnly;
+        next(); // skip 'writeonly;
+    }
+}
+
 stage parser::parseGlobalItem(stage *continuation) {
     stage parse;
 
@@ -120,113 +229,26 @@ stage parser::parseGlobalItem(stage *continuation) {
     if (continuation)
         parse = *continuation;
 
-    // "Variable declarations may have at most one storage qualifier specified in front of the type"
-    if (isKeyword(kKeyword_const)) {
-        parse.flags |= kConst;
-        next(); // skip 'const'
-    } else if (isKeyword(kKeyword_in)) {
-        parse.flags |= kIn;
-        next(); // skip 'in'
-    } else if (isKeyword(kKeyword_out)) {
-        parse.flags |= kOut;
-        next(); // skip 'out'
-    } else if (isKeyword(kKeyword_attribute)) {
-        // TODO: attribute
-        next();
-    } else if (isKeyword(kKeyword_uniform)) {
-        parse.flags |= kUniform;
-        next();
-    } else if (isKeyword(kKeyword_varying)) {
-        // TODO: varying
-        next();
-    } else if (isKeyword(kKeyword_buffer)) {
-        // TODO: buffer
-        next();
-    } else if (isKeyword(kKeyword_shared)) {
-        // TODO: shared
-        next();
-    }
+    parseStorage(parse);
+    parseAuxiliary(parse);
+    parseInterpolation(parse);
+    parsePrecision(parse);
+    parseInvariant(parse);
+    parsePrecise(parse);
+    parseMemory(parse);
 
-    // Auxiliary storage qualifiers
-    if (isKeyword(kKeyword_centroid)) {
-        parse.flags |= kCentroid;
-        next(); // skip 'centroid'
-    } else if (isKeyword(kKeyword_sample)) {
-        parse.flags |= kSample;
-        next(); // skip 'sample'
-    } else if (isKeyword(kKeyword_patch)) {
-        parse.flags |= kPatch;
-        next(); // skip 'patch'
-    }
-
-    // in and out can come after too
-    if (isKeyword(kKeyword_in)) {
-        parse.flags |= kIn;
-        next(); // skip 'in'
-    } else if (isKeyword(kKeyword_out)) {
-        parse.flags |= kOut;
-        next(); // skip 'out'
-    }
-
-    // verify use of auxiliary storage qualifier
-    if (!(parse.flags & kIn) && !(parse.flags & kOut)) {
-        const char *what = 0;
-        if (parse.flags & kCentroid)
-            what = "centroid";
-        else if (parse.flags & kSample)
-            what = "sample";
-        else if (parse.flags & kPatch)
-            what = "patch";
-        if (what)
-            fatal("auxiliary storage qualifier `%s' can only be used if the variable is `in' or `out' qualified", what);
-    }
-
-    if (isKeyword(kKeyword_layout)) {
-        parseLayout(parse.layoutQualifiers);
-        next();
-    }
-
-    // Can come after auxiliary storage qualifiers
-    if (isKeyword(kKeyword_invariant)) {
-        parse.flags |= kInvariant;
-        next(); // skip 'invariant'
-    }
-
-    // smooth/flat/noperspective
-    if (isKeyword(kKeyword_smooth)) {
-        parse.interpolation = kSmooth;
-        next(); // skip 'smooth'
-    } else if (isKeyword(kKeyword_flat)) {
-        parse.interpolation = kFlat;
-        next(); // skip 'flat'
-    } else if (isKeyword(kKeyword_noperspective)) {
-        parse.interpolation = kNoPerspective;
-        next(); // skip 'noperspective'
-    }
-
-    // It's invalid to use auxiliary storage qualifiers with patch
-    if (parse.flags & kPatch && parse.interpolation != -1) {
-        const char *what = 0;
-        if (parse.interpolation == kSmooth)
-            what = "smooth";
-        else if (parse.interpolation == kFlat)
-            what = "flat";
-        else
-            what = "noperspective";
-        fatal("cannot use auxiliary storage qualifier `patch' with interpolation qualifier `%s'", what);
-    }
-
-    // lowp/mediump/highp
-    if (isKeyword(kKeyword_lowp)) {
-        parse.precision = kLowp;
-        next(); // skip 'lowp'
-    } else if (isKeyword(kKeyword_mediump)) {
-        parse.precision = kMediump;
-        next(); // skip 'mediump'
-    } else if (isKeyword(kKeyword_highp)) {
-        parse.precision = kHighp;
-        next(); // skip 'highp'
-    }
+    // Do another pass since the qualifiers can appear anywhere as long as
+    // it's before the type
+    if (parse.storage == -1)
+        parseStorage(parse);
+    if (parse.auxiliary == -1)
+        parseAuxiliary(parse);
+    if (parse.interpolation == -1)
+        parseInterpolation(parse);
+    if (parse.precision == -1)
+        parsePrecision(parse);
+    if (parse.memory == 0)
+        parseMemory(parse);
 
     if (!continuation) {
         if (isKeyword(kKeyword_struct)) {
@@ -666,11 +688,11 @@ astFunction *parser::parseFunction(const stage &parse) {
         astFunctionParameter *parameter = GC_NEW(astVariable) astFunctionParameter();
         while (!isOperator(kOperator_comma) && !isOperator(kOperator_paranthesis_end)) {
             if (isKeyword(kKeyword_in))
-                parameter->flags |= kIn;
+                parameter->storage = kIn;
             else if (isKeyword(kKeyword_out))
-                parameter->flags |= kOut;
+                parameter->storage = kOut;
             else if (isKeyword(kKeyword_inout))
-                parameter->flags |= (kIn | kOut);
+                parameter->storage = kInOut;
             else if (isKeyword(kKeyword_highp))
                 parameter->precision = kHighp;
             else if (isKeyword(kKeyword_mediump))

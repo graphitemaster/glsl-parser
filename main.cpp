@@ -76,7 +76,77 @@ static void printVariable(astVariable *variable, bool nameOnly = false) {
     }
 }
 
+static void printStorage(int storage) {
+    switch (storage) {
+        case kConst:
+            print("const ");
+            break;
+        case kIn:
+            print("in ");
+            break;
+        case kOut:
+            print("out ");
+            break;
+        case kAttribute:
+            print("attribute ");
+            break;
+        case kUniform:
+            print("uniform ");
+            break;
+        case kVarying:
+            print("varying ");
+            break;
+        case kBuffer:
+            print("buffer ");
+            break;
+        case kShared:
+            print("shared ");
+            break;
+    }
+}
+
+static void printAuxiliary(int auxiliary) {
+    switch (auxiliary) {
+        case kCentroid:
+            print("centroid ");
+            break;
+        case kSample:
+            print("sample ");
+            break;
+        case kPatch:
+            print("patch ");
+            break;
+    }
+}
+
+static void printMemory(int memory) {
+    if (memory & kCoherent) print("coherent ");
+    if (memory & kVolatile) print("volatile ");
+    if (memory & kRestrict) print("restrict ");
+    if (memory & kReadOnly) print("readonly ");
+    if (memory & kWriteOnly) print("writeonly ");
+}
+
+static void printPrecision(int precision) {
+    switch (precision) {
+        case kLowp:
+            printf("lowp ");
+            break;
+        case kMediump:
+            printf("mediump ");
+            break;
+        case kHighp:
+            printf("highp ");
+            break;
+    }
+}
+
 static void printGlobalVariable(astGlobalVariable *variable) {
+    printStorage(variable->storage);
+    printAuxiliary(variable->auxiliary);
+    printMemory(variable->memory);
+    printPrecision(variable->precision);
+
     switch (variable->interpolation) {
         case kSmooth:
             print("smooth ");
@@ -89,36 +159,6 @@ static void printGlobalVariable(astGlobalVariable *variable) {
             break;
     }
 
-    switch (variable->precision) {
-        case kLowp:
-            printf("lowp ");
-            break;
-        case kMediump:
-            printf("mediump ");
-            break;
-        case kHighp:
-            printf("highp ");
-            break;
-    }
-
-    if (variable->flags & kConst)
-        print("const ");
-    else if (variable->flags & kUniform)
-        print("uniform ");
-    if (variable->flags & kInvariant)
-        print("invariant ");
-    if ((variable->flags & kIn) && (variable->flags & kOut))
-        print("inout ");
-    else if (variable->flags & kIn)
-        print("in ");
-    else if (variable->flags & kOut)
-        print("out ");
-    if (variable->flags & kCentroid)
-        print("centroid ");
-    else if (variable->flags & kSample)
-        print("sample ");
-    else if (variable->flags & kPatch)
-        print("patch ");
     printVariable((astVariable*)variable);
     print(";\n");
 }
@@ -406,20 +446,10 @@ static void printStatement(astStatement *statement) {
 }
 
 static void printFunctionParameter(astFunctionParameter *parameter) {
-    if (parameter->flags & kConst)
-        print("const ");
-    if ((parameter->flags & kIn) && (parameter->flags & kOut))
-        print("inout ");
-    else if (parameter->flags & kIn)
-        print("in ");
-    else if (parameter->flags & kOut)
-        print("out ");
-
-    switch (parameter->precision) {
-        case kLowp:    print("lowp "); break;
-        case kMediump: print("mediump "); break;
-        case kHighp:   print("highp "); break;
-    }
+    printStorage(parameter->storage);
+    printAuxiliary(parameter->auxiliary);
+    printMemory(parameter->memory);
+    printPrecision(parameter->precision);
     printType(parameter->type);
     if (parameter->name.size())
         print(" %s", parameter->name.c_str());

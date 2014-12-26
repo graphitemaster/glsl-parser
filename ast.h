@@ -115,31 +115,39 @@ struct astFunctionVariable : astVariable {
     astExpression *initialValue;
 };
 
+// Storage qualifiers
 enum {
-    kConst = 1 << 0,
-    kIn = 1 << 1,
-    kOut = 1 << 2,
-
-    // Auxiliary storage qualifiers
-    kCentroid = 1 << 3,
-    kSample = 1 << 5,
-    kPatch = 1 << 4,
-
-    kUniform = 1 << 6,
-    kInvariant = 1 << 7
+    kConst,
+    kIn,
+    kOut,
+    kInOut,
+    kAttribute,
+    kUniform,
+    kVarying,
+    kBuffer,
+    kShared
 };
 
+// Auxiliary storage qualifiers
 enum {
-    kCoherent,
-    kVolatile,
-    kRestrict,
-    kReadOnly,
-    kWriteOnly
+    kCentroid,
+    kSample,
+    kPatch,
+};
+
+// Memory qualifiers
+enum {
+    kCoherent = 1 << 0,
+    kVolatile = 1 << 1,
+    kRestrict = 1 << 2,
+    kReadOnly = 1 << 3,
+    kWriteOnly = 1 << 4
 };
 
 struct astFunctionParameter : astVariable {
     astFunctionParameter();
-    int flags; // only kIn and kOut are valid here
+    int storage; // in or out only
+    int auxiliary;
     int memory;
     int precision;
 };
@@ -152,10 +160,11 @@ enum {
 
 struct astGlobalVariable : astVariable {
     astGlobalVariable();
-    int flags;
-    int interpolation;
+    int storage;
+    int auxiliary;
+    int memory;
     int precision;
-    int memory; // only valid for image types
+    int interpolation;
     std::vector<astLayoutQualifier*> layoutQualifiers;
 };
 

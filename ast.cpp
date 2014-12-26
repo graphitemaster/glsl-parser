@@ -46,17 +46,19 @@ astFunctionVariable::astFunctionVariable()
 }
 
 astFunctionParameter::astFunctionParameter()
-    : flags(0)
-    , memory(-1)
+    : storage(-1)
+    , auxiliary(-1)
+    , memory(0)
     , precision(-1)
 {
 }
 
 astGlobalVariable::astGlobalVariable()
-    : flags(0)
-    , interpolation(-1)
+    : storage(-1)
+    , auxiliary(-1)
+    , memory(0)
     , precision(-1)
-    , memory(-1)
+    , interpolation(-1)
 {
 }
 
