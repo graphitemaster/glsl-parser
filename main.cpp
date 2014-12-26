@@ -163,12 +163,12 @@ static void printFunctionVariable(astFunctionVariable *variable) {
 }
 
 static void printPostIncrement(astPostIncrementExpression *expression) {
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
     print("++");
 }
 
 static void printPostDecrement(astPostDecrementExpression *expression) {
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
     print("--");
 }
 
@@ -194,12 +194,12 @@ static void printUnaryLogicalNot(astUnaryLogicalNotExpression *expression) {
 
 static void printPrefixIncrement(astPrefixIncrementExpression *expression) {
     print("++");
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
 }
 
 static void printPrefixDecrement(astPrefixDecrementExpression *expression) {
     print("--");
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
 }
 
 static void printAssign(astAssignmentExpression *expression) {
@@ -443,7 +443,7 @@ static void printFunction(astFunction *function) {
     print(" {\n");
     for (size_t i = 0; i < function->statements.size(); i++)
         printStatement(function->statements[i]);
-    print("\n}\n");
+    print("}\n");
 }
 
 static void printTU(astTU *tu) {
