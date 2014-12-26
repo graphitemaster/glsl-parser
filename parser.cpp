@@ -22,6 +22,8 @@ parser::~parser() {
 #define IS_OPERATOR(TOKEN, OPERATOR) \
     (IS_TYPE((TOKEN), kType_operator) && (TOKEN).m_operator == (OPERATOR))
 
+#define GC_NEW(X) new(gc<X>())
+
 bool parser::isType(int type) const {
     return IS_TYPE(m_token, type);
 }
@@ -83,7 +85,7 @@ astTU *parser::parse() {
             if (isType(kType_semicolon)) {
                 for (size_t i = 0; i < stages.size(); i++) {
                     stage &parse = stages[i];
-                    astGlobalVariable *global = new(gc<astVariable>()) astGlobalVariable();
+                    astGlobalVariable *global = GC_NEW(astVariable) astGlobalVariable();
                     global->flags = parse.flags;
                     global->interpolation = parse.interpolation;
                     global->precision = parse.precision;
@@ -304,22 +306,22 @@ astExpression *parser::parseUnaryPrefix(endCondition condition) {
         return parseExpression(kEndConditionParanthesis);
     } else if (isOperator(kOperator_logical_not)) {
         next(); // skip '!'
-        return new(gc<astExpression>()) astUnaryLogicalNotExpression(parseUnary(condition));
+        return GC_NEW(astExpression) astUnaryLogicalNotExpression(parseUnary(condition));
     } else if (isOperator(kOperator_bit_not)) {
         next(); // skip '~'
-        return new(gc<astExpression>()) astUnaryBitNotExpression(parseUnary(condition));
+        return GC_NEW(astExpression) astUnaryBitNotExpression(parseUnary(condition));
     } else if (isOperator(kOperator_plus)) {
         next(); // skip '+'
-        return new(gc<astExpression>()) astUnaryPlusExpression(parseUnary(condition));
+        return GC_NEW(astExpression) astUnaryPlusExpression(parseUnary(condition));
     } else if (isOperator(kOperator_minus)) {
         next(); // skip '-'
-        return new(gc<astExpression>()) astUnaryMinusExpression(parseUnary(condition));
+        return GC_NEW(astExpression) astUnaryMinusExpression(parseUnary(condition));
     } else if (isOperator(kOperator_increment)) {
         next(); // skip '++'
-        return new(gc<astExpression>()) astPrefixIncrementExpression(parseUnary(condition));
+        return GC_NEW(astExpression) astPrefixIncrementExpression(parseUnary(condition));
     } else if (isOperator(kOperator_decrement)) {
         next(); // skip '--'
-        return new(gc<astExpression>()) astPrefixDecrementExpression(parseUnary(condition));
+        return GC_NEW(astExpression) astPrefixDecrementExpression(parseUnary(condition));
     } else if (isBuiltin()) {
         return parseConstructorCall();
     } else if (isType(kType_identifier)) {
@@ -333,21 +335,21 @@ astExpression *parser::parseUnaryPrefix(endCondition condition) {
         } else {
             astVariable *find = findVariable(m_token.m_identifier);
             if (find)
-                return new(gc<astExpression>()) astVariableIdentifier(find);
+                return GC_NEW(astExpression) astVariableIdentifier(find);
             fatal("`%s' was not declared in this scope", m_token.m_identifier.c_str());
         }
     } else if (isKeyword(kKeyword_true))
-        return new(gc<astExpression>()) astBoolConstant(true);
+        return GC_NEW(astExpression) astBoolConstant(true);
     else if (isKeyword(kKeyword_false))
-        return new(gc<astExpression>()) astBoolConstant(false);
+        return GC_NEW(astExpression) astBoolConstant(false);
     else if (isType(kType_constant_int))
-        return new(gc<astExpression>()) astIntConstant(m_token.asInt);
+        return GC_NEW(astExpression) astIntConstant(m_token.asInt);
     else if (isType(kType_constant_uint))
-        return new(gc<astExpression>()) astUIntConstant(m_token.asUnsigned);
+        return GC_NEW(astExpression) astUIntConstant(m_token.asUnsigned);
     else if (isType(kType_constant_float))
-        return new(gc<astExpression>()) astFloatConstant(m_token.asFloat);
+        return GC_NEW(astExpression) astFloatConstant(m_token.asFloat);
     else if (isType(kType_constant_double))
-        return new(gc<astExpression>()) astDoubleConstant(m_token.asDouble);
+        return GC_NEW(astExpression) astDoubleConstant(m_token.asDouble);
     else if (condition == kEndConditionBracket)
         return 0;
     fatal("syntax error");
@@ -363,20 +365,20 @@ astExpression *parser::parseUnary(endCondition end) {
             next(); // skip '.'
             if (!isType(kType_identifier))
                 fatal("expected field identifier or swizzle after `.'");
-            astFieldOrSwizzle *expression = new(gc<astExpression>()) astFieldOrSwizzle();
+            astFieldOrSwizzle *expression = GC_NEW(astExpression) astFieldOrSwizzle();
             expression->operand = operand;
             expression->name = peek.m_identifier;
             operand = expression;
         } else if (IS_OPERATOR(peek, kOperator_increment)) {
             next(); // skip last
-            operand = new(gc<astExpression>()) astPostIncrementExpression(operand);
+            operand = GC_NEW(astExpression) astPostIncrementExpression(operand);
         } else if (IS_OPERATOR(peek, kOperator_decrement)) {
             next(); // skip last
-            operand = new(gc<astExpression>()) astPostDecrementExpression(operand);
+            operand = GC_NEW(astExpression) astPostDecrementExpression(operand);
         } else if (IS_OPERATOR(peek, kOperator_bracket_begin)) {
             next(); // skip last
             next(); // skip '['
-            astArraySubscript *expression = new(gc<astExpression>()) astArraySubscript();
+            astArraySubscript *expression = GC_NEW(astExpression) astArraySubscript();
             expression->operand = operand;
             expression->index = parseExpression(kEndConditionBracket);
             operand = expression;
@@ -394,7 +396,7 @@ astExpression *parser::parseExpression(endCondition condition) {
 }
 
 astExpressionStatement *parser::parseExpressionStatement(endCondition condition) {
-    return new(gc<astStatement>()) astExpressionStatement(parseExpression(condition));
+    return GC_NEW(astStatement) astExpressionStatement(parseExpression(condition));
 }
 
 astConstantExpression *parser::parseArraySize() {
@@ -403,7 +405,7 @@ astConstantExpression *parser::parseArraySize() {
 }
 
 astCompoundStatement *parser::parseCompoundStatement() {
-    astCompoundStatement *statement = new(gc<astStatement>()) astCompoundStatement();
+    astCompoundStatement *statement = GC_NEW(astStatement) astCompoundStatement();
     next(); // skip '{'
     while (!isType(kType_scope_end)) {
         statement->statements.push_back(parseStatement());
@@ -413,7 +415,7 @@ astCompoundStatement *parser::parseCompoundStatement() {
 }
 
 astIfStatement *parser::parseIfStatement() {
-    astIfStatement *statement = new(gc<astStatement>()) astIfStatement();
+    astIfStatement *statement = GC_NEW(astStatement) astIfStatement();
     next(); // skip 'if'
     if (!isOperator(kOperator_paranthesis_begin))
         fatal("expected `(' after `if' in if statement");
@@ -431,7 +433,7 @@ astIfStatement *parser::parseIfStatement() {
 }
 
 astSwitchStatement *parser::parseSwitchStatement() {
-    astSwitchStatement *statement = new(gc<astStatement>()) astSwitchStatement();
+    astSwitchStatement *statement = GC_NEW(astStatement) astSwitchStatement();
     next(); // skip 'switch'
     if (!isOperator(kOperator_paranthesis_begin))
         fatal("expected `(' after `switch' in switch statement");
@@ -450,7 +452,7 @@ astSwitchStatement *parser::parseSwitchStatement() {
 }
 
 astCaseLabelStatement *parser::parseCaseLabelStatement() {
-    astCaseLabelStatement *statement = new(gc<astStatement>()) astCaseLabelStatement();
+    astCaseLabelStatement *statement = GC_NEW(astStatement) astCaseLabelStatement();
     if (isKeyword(kKeyword_default)) {
         statement->isDefault = true;
         next(); // skip 'default'
@@ -464,7 +466,7 @@ astCaseLabelStatement *parser::parseCaseLabelStatement() {
 }
 
 astForStatement *parser::parseForStatement() {
-    astForStatement *statement = new(gc<astStatement>()) astForStatement();
+    astForStatement *statement = GC_NEW(astStatement) astForStatement();
     next(); // skip 'for'
     if (!isOperator(kOperator_paranthesis_begin))
         fatal("expected `(' after `for' in for statement");
@@ -483,25 +485,25 @@ astForStatement *parser::parseForStatement() {
 }
 
 astContinueStatement *parser::parseContinueStatement() {
-    astContinueStatement *statement = new(gc<astStatement>()) astContinueStatement();
+    astContinueStatement *statement = GC_NEW(astStatement) astContinueStatement();
     next(); // skip 'continue'
     return statement;
 }
 
 astBreakStatement *parser::parseBreakStatement() {
-    astBreakStatement *statement = new(gc<astStatement>()) astBreakStatement();
+    astBreakStatement *statement = GC_NEW(astStatement) astBreakStatement();
     next(); // skip 'break'
     return statement;
 }
 
 astDiscardStatement *parser::parseDiscardStatement() {
-    astDiscardStatement *statement = new(gc<astStatement>()) astDiscardStatement();
+    astDiscardStatement *statement = GC_NEW(astStatement) astDiscardStatement();
     next(); // skip 'discard'
     return statement;
 }
 
 astReturnStatement *parser::parseReturnStatement() {
-    astReturnStatement *statement = new(gc<astStatement>()) astReturnStatement();
+    astReturnStatement *statement = GC_NEW(astStatement) astReturnStatement();
     next(); // skip 'return'
     if (!isType(kType_semicolon))
         statement->expression = parseExpression(kEndConditionSemicolon);
@@ -509,7 +511,7 @@ astReturnStatement *parser::parseReturnStatement() {
 }
 
 astDoStatement *parser::parseDoStatement() {
-    astDoStatement *statement = new(gc<astStatement>()) astDoStatement();
+    astDoStatement *statement = GC_NEW(astStatement) astDoStatement();
     next(); // skip 'do'
     statement->body = parseStatement();
     next();
@@ -525,7 +527,7 @@ astDoStatement *parser::parseDoStatement() {
 }
 
 astWhileStatement *parser::parseWhileStatement() {
-    astWhileStatement *statement = new(gc<astStatement>()) astWhileStatement();
+    astWhileStatement *statement = GC_NEW(astStatement) astWhileStatement();
     next(); // skip 'while'
     if (!isOperator(kOperator_paranthesis_begin))
         fatal("expected `(' after `while' in while-loop");
@@ -558,7 +560,7 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
 
     next();
 
-    astDeclarationStatement *statement = new(gc<astStatement>()) astDeclarationStatement();
+    astDeclarationStatement *statement = GC_NEW(astStatement) astDeclarationStatement();
     for (;;) {
         size_t paranthesisCount = 0;
         while (isOperator(kOperator_paranthesis_begin)) {
@@ -594,7 +596,7 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
             initialValue = parseExpression(kEndConditionComma | condition);
         }
 
-        astFunctionVariable *variable = new(gc<astVariable>()) astFunctionVariable();
+        astFunctionVariable *variable = GC_NEW(astVariable) astFunctionVariable();
         variable->isConst = isConst;
         variable->type = type;
         variable->name = name;
@@ -650,19 +652,19 @@ astStatement *parser::parseStatement() {
     else if (isKeyword(kKeyword_return))
         return parseReturnStatement();
     else if (isType(kType_semicolon))
-        return new(gc<astStatement>()) astEmptyStatement();
+        return GC_NEW(astStatement) astEmptyStatement();
     else
         return parseDeclarationOrExpressionStatement(kEndConditionSemicolon);
 }
 
 astFunction *parser::parseFunction(const stage &parse) {
-    astFunction *function = new(gc<astFunction>()) astFunction();
+    astFunction *function = GC_NEW(astFunction) astFunction();
     function->returnType = parse.type;
     function->name = parse.name;
 
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
-        astFunctionParameter *parameter = new(gc<astVariable>()) astFunctionParameter();
+        astFunctionParameter *parameter = GC_NEW(astVariable) astFunctionParameter();
         while (!isOperator(kOperator_comma) && !isOperator(kOperator_paranthesis_end)) {
             if (isKeyword(kKeyword_in))
                 parameter->flags |= kIn;
@@ -740,7 +742,7 @@ astBuiltin *parser::parseBuiltin() {
             for (size_t i = 0; i < m_builtins.size(); i++)
                 if (m_builtins[i]->type == m_token.m_keyword)
                     return m_builtins[i];
-            m_builtins.push_back(new(gc<astType>()) astBuiltin(m_token.m_keyword));
+            m_builtins.push_back(GC_NEW(astType) astBuiltin(m_token.m_keyword));
             return m_builtins.back();
             break;
         default:
@@ -752,7 +754,7 @@ astBuiltin *parser::parseBuiltin() {
 #undef TYPENAME
 
 astConstructorCall *parser::parseConstructorCall() {
-    astConstructorCall *expression = new(gc<astExpression>()) astConstructorCall();
+    astConstructorCall *expression = GC_NEW(astExpression) astConstructorCall();
     expression->type = parseBuiltin();
     next();
     if (!isOperator(kOperator_paranthesis_begin))
@@ -768,7 +770,7 @@ astConstructorCall *parser::parseConstructorCall() {
 }
 
 astFunctionCall *parser::parseFunctionCall() {
-    astFunctionCall *expression = new(gc<astExpression>()) astFunctionCall();
+    astFunctionCall *expression = GC_NEW(astExpression) astFunctionCall();
     expression->name = m_token.m_identifier;
     next(); // skip identifier
     if (!isOperator(kOperator_paranthesis_begin))
@@ -812,7 +814,7 @@ astBinaryExpression *parser::createExpression() {
         case kOperator_logical_and:
         case kOperator_logical_xor:
         case kOperator_logical_or:
-            return new(gc<astExpression>()) astOperationExpression(m_token.m_operator);
+            return GC_NEW(astExpression) astOperationExpression(m_token.m_operator);
         case kOperator_assign:
         case kOperator_add_assign:
         case kOperator_sub_assign:
@@ -824,9 +826,9 @@ astBinaryExpression *parser::createExpression() {
         case kOperator_bit_and_assign:
         case kOperator_bit_xor_assign:
         case kOperator_bit_or_assign:
-            return new(gc<astExpression>()) astAssignmentExpression(m_token.m_operator);
+            return GC_NEW(astExpression) astAssignmentExpression(m_token.m_operator);
         case kOperator_comma:
-            return new(gc<astExpression>()) astSequenceExpression();
+            return GC_NEW(astExpression) astSequenceExpression();
         default:
             return 0;
     }
