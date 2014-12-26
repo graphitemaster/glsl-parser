@@ -71,9 +71,10 @@ bool parser::isBuiltin() const {
 
 /// The parser entry point
 astTU *parser::parse() {
-    m_ast = new astTU;
-
-    if (!setjmp(m_exit)) {
+    if (setjmp(m_exit)) {
+        return 0;
+    } else {
+        m_ast = new astTU;
         m_scopes.push_back(scope());
         for (;;) {
             m_lexer.read(m_token, true);
@@ -104,11 +105,9 @@ astTU *parser::parse() {
                 fatal("syntax error (top level)");
             }
         }
-    } else {
-        printf("%s\n", m_error.c_str());
+        return m_ast;
     }
-
-    return m_ast;
+    return 0;
 }
 
 stage parser::parseGlobalItem(stage *continuation) {
@@ -844,6 +843,10 @@ astVariable *parser::findVariable(const std::string &identifier) {
                 return s[variableIndex];
     }
     return 0;
+}
+
+const char *parser::error() const {
+    return m_error.c_str();
 }
 
 }

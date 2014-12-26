@@ -35,6 +35,7 @@ struct parser {
     parser(const std::string &source);
     astTU *parse();
 
+    const char *error() const;
 protected:
     enum {
         kEndConditionSemicolon = 1 << 0,

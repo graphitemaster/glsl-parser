@@ -480,6 +480,12 @@ int main(int argc, char **argv) {
     }
     fclose(fp);
 
-    printTU(parser(source).parse());
+    parser p(source);
+    astTU *tu = p.parse();
+    if (tu)
+        printTU(tu);
+    else
+        fprintf(stderr, "%s", p.error());
+
     return 0;
 }
