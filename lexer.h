@@ -46,14 +46,7 @@ struct operatorInfo {
 };
 
 struct token {
-    const char *name() const;
-    const keywordInfo *keyword() const;
-    const operatorInfo *oper() const;
-    const char *identifier() const;
-
-    int type() const;
     int precedence() const;
-
 private:
     friend struct lexer;
     friend struct parser;
@@ -69,9 +62,16 @@ private:
     };
 };
 
-inline int token::type() const {
-    return m_type;
-}
+struct location {
+    location();
+    size_t column;
+    size_t line;
+    size_t position;
+private:
+    friend struct lexer;
+    void advanceColumn(size_t count = 1);
+    void advanceLine();
+};
 
 struct lexer {
     lexer(const std::string &data);
@@ -84,19 +84,40 @@ struct lexer {
     void backup();
     void restore();
 
+    size_t line() const;
+    size_t column() const;
+
 protected:
     friend struct parser;
+
+    size_t position() const;
+
+    int current() const;
+
     void read(token &out);
     void read(token &out, bool);
 
     std::string readNumeric(bool isOctal, bool isHex);
 
 private:
-    size_t m_position;
-    size_t m_backup;
+    location m_location;
+    location m_backup;
+
     std::string m_data;
     std::string m_error;
 };
+
+inline size_t lexer::position() const {
+    return m_location.position;
+}
+
+inline size_t lexer::line() const {
+    return m_location.line;
+}
+
+inline size_t lexer::column() const {
+    return m_location.column;
+}
 
 }
 

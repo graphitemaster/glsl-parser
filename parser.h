@@ -1,5 +1,7 @@
 #ifndef PARSE_HDR
 #define PARSE_HDR
+#include <setjmp.h>
+
 #include "lexer.h"
 #include "ast.h"
 
@@ -10,6 +12,7 @@ struct stage {
         : flags(0)
         , interpolation(-1)
         , precision(-1)
+        , memory(-1)
         , type(0)
         , arraySize(0)
         , isArray(false)
@@ -18,6 +21,7 @@ struct stage {
     int flags;
     int interpolation;
     int precision;
+    int memory;
     std::vector<astLayoutQualifier*> layoutQualifiers;
     astType *type;
     astConstantExpression *arraySize;
@@ -54,6 +58,8 @@ protected:
     bool isBuiltin() const;
 
     void parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers);
+
+    void fatal(const char *fmt, ...);
 
     // Type parsers
     astBuiltin *parseBuiltin();
@@ -104,6 +110,9 @@ private:
     token m_token;
     std::vector<scope> m_scopes;
     std::vector<astBuiltin*> m_builtins;
+
+    jmp_buf m_exit;
+    std::string m_error;
 };
 
 template <typename T>

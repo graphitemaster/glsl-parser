@@ -129,10 +129,18 @@ enum {
     kInvariant = 1 << 7
 };
 
+enum {
+    kCoherent,
+    kVolatile,
+    kRestrict,
+    kReadOnly,
+    kWriteOnly
+};
+
 struct astFunctionParameter : astVariable {
     astFunctionParameter();
     int flags; // only kIn and kOut are valid here
-    // TODO: memory qualifier
+    int memory;
     int precision;
 };
 
@@ -147,6 +155,7 @@ struct astGlobalVariable : astVariable {
     int flags;
     int interpolation;
     int precision;
+    int memory; // only valid for image types
     std::vector<astLayoutQualifier*> layoutQualifiers;
 };
 

@@ -2,46 +2,43 @@
 
 /* Block comments */
 
-/* Spanning multiple lines
- * as well */
-
+float test_default;
 in float test_in;
 out float test_out;
-inout float test_inout;
-const float test_const;
-float test_global;
-centroid float test_centroid;
-//float test_array_unsized[]; // Broken
-float test_array_sized[10];
+attribute float test_attribute;
+uniform float test_uniform;
+varying float test_varying;
 
-void test_prototype_empty();
-void test_prototype_void(void);
-void test_prototype_named(float something);
-void test_prototype_unnamed(float);
-//void test_prototype_named_array(float something[10]); // Broken
-//void test_prototype_unnamed_array(float[10]); // Broken
+float test_default_array[1];
+in float test_in_array[2];
+out float test_out_array[3];
+attribute float test_attribute_array[4];
+uniform float test_uniform_array[5];
+varying float test_varying_array[6];
 
-void test_function_empty() {
-}
+in centroid float test_centroid_in;
+in sample float test_sample_in;
+in patch float test_patch_in;
 
-void test_function_void(void) {
-}
+// in & out can come after the auxiliary qualifier as well
+centroid in float test_centroid_in_after;
+sample in float test_sample_in_after;
+patch in float test_patch_in_after;
 
-void test_control_flow() {
-    if (0) { }
-    if (1) { } else { }
-    if (1) { } else if (2) { }
-    switch (0) {
-        case 0:
-        case 1:
-            break;
-        default:
-            break;
-    }
-    for (;;) {
-    }
-    do { } while (0);
-    //while (1.0f) { } // Broken
-}
+out centroid float test_centroid_out;
+out sample float test_sample_out;
+out patch float test_patch_out;
 
+// in & out can come after the auxiliary qualifier as well
+centroid out float test_centroid_out_after;
+sample out float test_sample_out_after;
+patch out float test_patch_out_after;
 
+smooth float test_smooth;
+flat float test_flat;
+//noperspective float test_noperspective; // Broken
+
+void test_function_empty_proto();
+void test_function_empty_void_proto(void);
+void test_function_pass_proto(float pass);
+void test_function_pass_array_proto(float array[10]);

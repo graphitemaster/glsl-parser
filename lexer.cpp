@@ -23,71 +23,101 @@ static const operatorInfo kOperators[] = {
 #undef OPERATOR
 #define OPERATOR(...)
 
-// Lookup table of token names
-#undef TYPE
-#define TYPE(X) #X,
-static const char *kTokenNames[] = {
-    #include "lexemes.h"
-};
-#undef TYPE
-#define TYPE(...)
+int token::precedence() const {
+    return kOperators[m_operator].precedence;
+}
 
-// Utilities
-#define is_digit(X) (((unsigned)(X)-'0') < 10)
-#define is_char(X) ((((unsigned)(X)|32)-'a') < 26)
-#define is_octal(X) ((X) >= '0' && (X) <= '7')
-#define is_hex(X) (((X) >= 'a' && (X) <= 'f') && ((X) >= 'A' && (X) <= 'F') && is_digit(X))
-#define is_space(X) (((X) >= '\t' && (X) <= '\r') || (X) == ' ')
+/// location
+location::location()
+    : column(1)
+    , line(1)
+    , position(0)
+{
+}
+
+void location::advanceColumn(size_t count) {
+    column += count;
+    position += count;
+}
+
+void location::advanceLine() {
+    line++;
+    position++;
+    column = 1;
+}
+
+static inline bool isDigit(int ch) {
+    return unsigned(ch) - '0' < 10;
+}
+
+static inline bool isChar(int ch) {
+    return (unsigned(ch) | 32) - 'a' < 26;
+}
+
+static inline bool isOctal(int ch) {
+    return unsigned(ch) - '0' < 8;
+}
+
+static inline bool isHex(int ch) {
+    return (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch >= 'F') || isDigit(ch);
+}
+
+static inline bool isSpace(int ch) {
+    return (ch >= '\t' && ch <= '\r') || ch == ' ';
+}
 
 lexer::lexer(const std::string &string)
-    : m_position(0)
-    , m_data(string)
+    : m_data(string)
 {
+}
+
+int lexer::current() const {
+    return m_data[m_location.position];
 }
 
 void lexer::read(token &out) {
     // TODO: Line continuation (backslash `\'.)
-    if (m_position == m_data.length()) {
+    if (position() == m_data.length()) {
         out.m_type = kType_eof;
         return;
     }
 
-    int ch1 = (m_position + 1 < m_data.length()) ? m_data[m_position + 1] : 0;
-    int ch2 = (m_position + 2 < m_data.length()) ? m_data[m_position + 2] : 0;
+    int ch1 = (position() + 1 < m_data.length()) ? m_data[position() + 1] : 0;
+    int ch2 = (position() + 2 < m_data.length()) ? m_data[position() + 2] : 0;
 
     // Lex numerics
-    if (is_digit(m_data[m_position]) || (m_data[m_position] == '.' && is_digit(ch1)))
+    if (isDigit(current()) || (current() == '.' && isDigit(ch1)))
     {
         bool isFloat = false;
         bool isDouble = false;
         bool isUnsigned = false;
-        bool isOctal = false;
-        bool isHex = false;
+        bool isOctalish = false;
+        bool isHexish = false;
 
-        if (m_data[m_position] == '0') {
+        if (current() == '0') {
             if (ch1 && (ch1 == 'x' || ch1 == 'X')) {
-                isHex = true;
-                m_position += 2;
+                isHexish = true;
+                m_location.advanceColumn(2);
             }
             // TODO: Octal
         }
 
-        std::string numeric = readNumeric(isOctal, isHex);
-        if (m_position != m_data.length() && m_data[m_position] == '.') {
+        std::string numeric = readNumeric(isOctalish, isHexish);
+        if (position() != m_data.length() && current() == '.') {
             isFloat = true;
             numeric.push_back('.');
-            m_position++;
-            numeric += readNumeric(isOctal, isHex);
+            m_location.advanceColumn();
+            numeric += readNumeric(isOctalish, isHexish);
         }
 
-        if (m_position != m_data.length() && (m_data[m_position] == 'e' || m_data[m_position] == 'E')) {
-            ch1 = (m_position + 1 < m_data.length()) ? m_data[m_position + 1] : 0;
-            ch2 = (m_position + 2 < m_data.length()) ? m_data[m_position + 2] : 0;
+        if (position() != m_data.length() && (current() == 'e' || current() == 'E')) {
+            ch1 = (position() + 1 < m_data.length()) ? m_data[position() + 1] : 0;
+            ch2 = (position() + 2 < m_data.length()) ? m_data[position() + 2] : 0;
             if ((ch1 == '+' || ch1 == '-') && (ch2 >= '0' && ch2 <= '9')) {
                 numeric.push_back(ch1);
                 numeric.push_back(ch2);
-                m_position += 2;
-                numeric += readNumeric(isOctal, isHex);
+                m_location.advanceColumn(2);
+                numeric += readNumeric(isOctalish, isHexish);
                 isFloat = true;
             } else {
                 m_error = "invalid numeric literal";
@@ -95,14 +125,14 @@ void lexer::read(token &out) {
             }
         }
 
-        if (m_position != m_data.length() && is_char(m_data[m_position])) {
-            ch1 = (m_position + 1 < m_data.length()) ? m_data[m_position + 1] : 0;
-            if (m_data[m_position] == 'f' || m_data[m_position] == 'F') {
+        if (position() != m_data.length() && isChar(current())) {
+            ch1 = (position() + 1 < m_data.length()) ? m_data[position() + 1] : 0;
+            if (current() == 'f' || current() == 'F') {
                 isFloat = true;
-            } else if ((m_data[m_position] == 'l' && ch1 == 'f') || (m_data[m_position] == 'L' && ch1 == 'F')) {
+            } else if ((current() == 'l' && ch1 == 'f') || (current() == 'L' && ch1 == 'F')) {
                 isFloat = false;
                 isDouble = true;
-            } else if (m_data[m_position] == 'u' || m_data[m_position] == 'U') {
+            } else if (current() == 'u' || current() == 'U') {
                 if (isFloat) {
                     m_error = "invalid use of suffix on literal";
                     return;
@@ -112,15 +142,15 @@ void lexer::read(token &out) {
                 m_error = "invalid numeric literal";
                 return;
             }
-            m_position++;
+            m_location.advanceColumn();
         }
 
-        if (isHex && (isFloat || isDouble)) {
+        if (isHexish && (isFloat || isDouble)) {
             m_error = "invalid numeric literal";
             return;
         }
 
-        int base = isHex ? 16 : (isOctal ? 8 : 10);
+        int base = isHexish ? 16 : (isOctalish ? 8 : 10);
         if (isFloat) {
             out.m_type = kType_constant_float;
             out.asFloat = strtof(numeric.c_str(), 0);
@@ -134,15 +164,13 @@ void lexer::read(token &out) {
             out.m_type = kType_constant_int;
             out.asInt = strtol(numeric.c_str(), 0, base);
         }
-    } else if (is_char(m_data[m_position]) || m_data[m_position] == '_') {
+    } else if (isChar(current()) || current() == '_') {
         // Identifiers
         out.m_type = kType_identifier;
         out.m_identifier.clear();
-        while (m_position != m_data.length() &&
-            (is_char(m_data[m_position]) || is_digit(m_data[m_position]) || m_data[m_position] == '_'))
-        {
-            out.m_identifier.push_back(m_data[m_position]);
-            m_position++;
+        while (position() != m_data.length() && (isChar(current()) || isDigit(current()) || current() == '_')) {
+            out.m_identifier.push_back(current());
+            m_location.advanceColumn();
         }
 
         for (size_t i = 0; i < sizeof(kKeywords)/sizeof(kKeywords[0]); i++) {
@@ -150,32 +178,35 @@ void lexer::read(token &out) {
                 continue;
             out.m_type = kType_keyword;
             out.m_keyword = int(i);
-            //out.m_identifier.clear();
         }
     } else {
-        switch (m_data[m_position]) {
+        switch (current()) {
         // Non operators
-        case ' ':
-        case '\t':
-        case '\r':
         case '\n':
+        case '\t':
         case '\f':
         case '\v':
-            while (m_position < m_data.length() && is_space(m_data[m_position]))
-                m_position++;
+        case '\r':
+        case ' ':
+            while (position() < m_data.length() && isSpace(current())) {
+                if (current() == '\n')
+                    m_location.advanceLine();
+                else
+                    m_location.advanceColumn();
+            }
             out.m_type = kType_whitespace; // Whitespace already skippped
             break;
         case ';':
             out.m_type = kType_semicolon;
-            m_position++;
+            m_location.advanceColumn();
             break;
         case '{':
             out.m_type = kType_scope_begin;
-            m_position++;
+            m_location.advanceColumn();
             break;
         case '}':
             out.m_type = kType_scope_end;
-            m_position++;
+            m_location.advanceColumn();
             break;
 
         // Operators
@@ -204,22 +235,26 @@ void lexer::read(token &out) {
         case '/':
             if (ch1 == '/') {
                 // Skip line comments
-                while (m_position != m_data.length()) {
-                    if (m_data[m_position] == '\n') {
-                        m_position++;
+                while (position() != m_data.length()) {
+                    if (current() == '\n') {
+                        m_location.advanceLine();
                         break;
                     }
-                    m_position++;
+                    m_location.advanceColumn();
                 }
                 out.m_type = kType_comment;
             } else if (ch1 == '*') {
                 // Skip block comments
-                while (m_position != m_data.length()) {
-                    if (m_data[m_position] == '*' && m_position + 1 < m_data.length() && m_data[m_position + 1] == '/') {
-                        m_position += 2;
+                while (position() != m_data.length()) {
+                    if (current() == '\n') {
+                        m_location.advanceLine();
+                        continue;
+                    }
+                    if (current() == '*' && position() + 1 < m_data.length() && m_data[position() + 1] == '/') {
+                        m_location.advanceColumn(2);
                         break;
                     }
-                    m_position++;
+                    m_location.advanceColumn();
                 }
                 out.m_type = kType_comment;
             } else if (ch1 == '=') {
@@ -345,30 +380,36 @@ void lexer::read(token &out) {
         }
         // Skip whitespace for operator
         if (out.m_type == kType_operator)
-            m_position += strlen(kOperators[out.m_operator].string);
+            m_location.advanceColumn(strlen(kOperators[out.m_operator].string));
     }
 }
 
-std::string lexer::readNumeric(bool isOctal, bool isHex) {
+std::string lexer::readNumeric(bool isOctalish, bool isHexish) {
     std::string digits;
-    if (isOctal) {
-        while (m_position < m_data.length() && is_octal(m_data[m_position]))
-            digits.push_back(m_data[m_position++]);
-    } else if (isHex) {
-        while (m_position < m_data.length() && is_hex(m_data[m_position]))
-            digits.push_back(m_data[m_position++]);
+    if (isOctalish) {
+        while (position() < m_data.length() && isOctal(current())) {
+            digits.push_back(current());
+            m_location.advanceColumn();
+        }
+    } else if (isHexish) {
+        while (position() < m_data.length() && isHex(current())) {
+            digits.push_back(current());
+            m_location.advanceColumn();
+        }
     } else {
-        while (m_position < m_data.length() && is_digit(m_data[m_position]))
-            digits.push_back(m_data[m_position++]);
+        while (position() < m_data.length() && isDigit(current())) {
+            digits.push_back(current());
+            m_location.advanceColumn();
+        }
     }
     return digits;
 }
 
 token lexer::peek() {
     token out;
-    const size_t record = m_position;
+    backup();
     read(out, true);
-    m_position = record;
+    restore();
     return out;
 }
 
@@ -383,32 +424,11 @@ const char *lexer::error() const {
 }
 
 void lexer::backup() {
-    m_backup = m_position;
+    m_backup = m_location;
 }
 
 void lexer::restore() {
-    m_position = m_backup;
-}
-
-/// token
-const char *token::name() const {
-    return kTokenNames[m_type];
-}
-
-const keywordInfo *token::keyword() const {
-    return &kKeywords[m_keyword];
-}
-
-const operatorInfo *token::oper() const {
-    return &kOperators[m_operator];
-}
-
-const char *token::identifier() const {
-    return m_identifier.c_str();
-}
-
-int token::precedence() const {
-    return oper()->precedence;
+    m_location = m_backup;
 }
 
 }

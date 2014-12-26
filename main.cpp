@@ -86,6 +86,19 @@ static void printGlobalVariable(astGlobalVariable *variable) {
             break;
         case kNoPerspective:
             print("noperspective ");
+            break;
+    }
+
+    switch (variable->precision) {
+        case kLowp:
+            printf("lowp ");
+            break;
+        case kMediump:
+            printf("mediump ");
+            break;
+        case kHighp:
+            printf("highp ");
+            break;
     }
 
     if (variable->flags & kConst)
@@ -427,7 +440,7 @@ static void printFunction(astFunction *function) {
         print(";\n");
         return;
     }
-    print("{\n");
+    print(" {\n");
     for (size_t i = 0; i < function->statements.size(); i++)
         printStatement(function->statements[i]);
     print("\n}\n");

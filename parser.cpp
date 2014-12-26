@@ -1,10 +1,8 @@
-#include <stdio.h> // TODO: proper error handling
-#include "parser.h"
+#include <stdio.h>
+#include <stdarg.h>
+#include <string.h>
 
-static inline void fatal(const char *error) {
-    fprintf(stderr, "%s\n", error);
-    abort();
-}
+#include "parser.h"
 
 namespace glsl {
 
@@ -44,6 +42,15 @@ bool parser::isEndCondition(endCondition condition) const {
         || ((condition & kEndConditionComma)        && isOperator(kOperator_comma));
 }
 
+void parser::fatal(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    fprintf(stderr, "<string>:%zu:%zu: error: ", m_lexer.line(), m_lexer.column());
+    vfprintf(stderr, fmt, va);
+    va_end(va);
+    longjmp(m_exit, 1);
+}
+
 #undef TYPENAME
 #define TYPENAME(X) case kKeyword_##X:
 bool parser::isBuiltin() const {
@@ -64,35 +71,39 @@ bool parser::isBuiltin() const {
 astTU *parser::parse() {
     m_ast = new astTU;
 
-    m_scopes.push_back(scope());
-    for (;;) {
-        m_lexer.read(m_token, true);
-        if (isType(kType_eof))
-            break;
+    if (!setjmp(m_exit)) {
+        m_scopes.push_back(scope());
+        for (;;) {
+            m_lexer.read(m_token, true);
+            if (isType(kType_eof))
+                break;
 
-        std::vector<stage> stages = parseGlobalScope();
+            std::vector<stage> stages = parseGlobalScope();
 
-        if (isType(kType_semicolon)) {
-            for (size_t i = 0; i < stages.size(); i++) {
-                stage &parse = stages[i];
-                astGlobalVariable *global = new(gc<astVariable>()) astGlobalVariable();
-                global->flags = parse.flags;
-                global->interpolation = parse.interpolation;
-                global->precision = parse.precision;
-                global->type = parse.type;
-                global->name = parse.name;
-                global->isArray = parse.isArray;
-                global->arraySize = parse.arraySize;
-                m_ast->globals.push_back(global);
-                m_scopes.back().push_back(global);
+            if (isType(kType_semicolon)) {
+                for (size_t i = 0; i < stages.size(); i++) {
+                    stage &parse = stages[i];
+                    astGlobalVariable *global = new(gc<astVariable>()) astGlobalVariable();
+                    global->flags = parse.flags;
+                    global->interpolation = parse.interpolation;
+                    global->precision = parse.precision;
+                    global->type = parse.type;
+                    global->name = parse.name;
+                    global->isArray = parse.isArray;
+                    global->arraySize = parse.arraySize;
+                    m_ast->globals.push_back(global);
+                    m_scopes.back().push_back(global);
+                }
+            } else if (isOperator(kOperator_paranthesis_begin)) {
+                m_ast->functions.push_back(parseFunction(stages.front()));
+            } else if (isType(kType_whitespace)) {
+                continue; // whitespace tokens will be used later for the preprocessor
+            } else {
+                fatal("syntax error (top level)");
             }
-        } else if (isOperator(kOperator_paranthesis_begin)) {
-            m_ast->functions.push_back(parseFunction(stages.front()));
-        } else if (isType(kType_whitespace)) {
-            continue; // whitespace tokens will be used later for the preprocessor
-        } else {
-            fatal("syntax error (top level)");
         }
+    } else {
+        printf("%s\n", m_error.c_str());
     }
 
     return m_ast;
@@ -105,55 +116,103 @@ stage parser::parseGlobalItem(stage *continuation) {
     if (continuation)
         parse = *continuation;
 
+    // "Variable declarations may have at most one storage qualifier specified in front of the type"
     if (isKeyword(kKeyword_const)) {
         parse.flags |= kConst;
         next(); // skip 'const'
-    }
-    if (isKeyword(kKeyword_in)) {
+    } else if (isKeyword(kKeyword_in)) {
         parse.flags |= kIn;
         next(); // skip 'in'
-    }
-    if (isKeyword(kKeyword_out)) {
+    } else if (isKeyword(kKeyword_out)) {
         parse.flags |= kOut;
         next(); // skip 'out'
+    } else if (isKeyword(kKeyword_attribute)) {
+        // TODO: attribute
+        next();
+    } else if (isKeyword(kKeyword_uniform)) {
+        parse.flags |= kUniform;
+        next();
+    } else if (isKeyword(kKeyword_varying)) {
+        // TODO: varying
+        next();
+    } else if (isKeyword(kKeyword_buffer)) {
+        // TODO: buffer
+        next();
+    } else if (isKeyword(kKeyword_shared)) {
+        // TODO: shared
+        next();
     }
-    if (isKeyword(kKeyword_inout)) {
-        parse.flags |= kIn;
-        parse.flags |= kOut;
-        next(); // skip 'inout'
-    }
+
+    // Auxiliary storage qualifiers
     if (isKeyword(kKeyword_centroid)) {
         parse.flags |= kCentroid;
         next(); // skip 'centroid'
-    }
-    if (isKeyword(kKeyword_patch)) {
+    } else if (isKeyword(kKeyword_sample)) {
+        parse.flags |= kSample;
+        next(); // skip 'sample'
+    } else if (isKeyword(kKeyword_patch)) {
         parse.flags |= kPatch;
         next(); // skip 'patch'
     }
-    if (isKeyword(kKeyword_sample)) {
-        parse.flags |= kSample;
-        next(); // skip 'sample'
+
+    // in and out can come after too
+    if (isKeyword(kKeyword_in)) {
+        parse.flags |= kIn;
+        next(); // skip 'in'
+    } else if (isKeyword(kKeyword_out)) {
+        parse.flags |= kOut;
+        next(); // skip 'out'
     }
-    if (isKeyword(kKeyword_uniform)) {
-        parse.flags |= kUniform;
-        next(); // skip 'uniform'
+
+    // verify use of auxiliary storage qualifier
+    if (!(parse.flags & kIn) && !(parse.flags & kOut)) {
+        const char *what = 0;
+        if (parse.flags & kCentroid)
+            what = "centroid";
+        else if (parse.flags & kSample)
+            what = "sample";
+        else if (parse.flags & kPatch)
+            what = "patch";
+        if (what)
+            fatal("auxiliary storage qualifier `%s' can only be used if the variable is `in' or `out' qualified", what);
     }
+
     if (isKeyword(kKeyword_layout)) {
         parseLayout(parse.layoutQualifiers);
         next();
     }
+
+    // Can come after auxiliary storage qualifiers
     if (isKeyword(kKeyword_invariant)) {
         parse.flags |= kInvariant;
         next(); // skip 'invariant'
+    } else if (isKeyword(kKeyword_noperspective)) {
+        parse.flags |= kNoPerspective;
+        next(); // skip 'noperspective'
     }
 
-    // smooth/flat
-    if (isKeyword(kKeyword_flat)) {
-        parse.interpolation = kFlat;
-        next(); // skip 'flat'
-    } else if (isKeyword(kKeyword_smooth)) {
+    // smooth/flat/noperspective
+    if (isKeyword(kKeyword_smooth)) {
         parse.interpolation = kSmooth;
         next(); // skip 'smooth'
+    } else if (isKeyword(kKeyword_flat)) {
+        parse.interpolation = kFlat;
+        next(); // skip 'flat'
+    } else if (isKeyword(kKeyword_noperspective)) {
+        parse.interpolation = kNoPerspective;
+        next(); // skip 'noperspective'
+    }
+
+    // It's invalid to use auxiliary storage qualifiers with patch
+    if (parse.flags & kPatch && parse.interpolation != -1) {
+        const char *what = 0;
+        if (parse.interpolation == kSmooth)
+            what = "smooth";
+        else if (parse.interpolation == kFlat)
+            what = "flat";
+        else
+            what = "noperspective";
+        fatal("cannot use auxiliary storage qualifier `patch' with interpolation qualifier `%s'", what);
     }
 
     // lowp/mediump/highp
@@ -181,8 +240,11 @@ stage parser::parseGlobalItem(stage *continuation) {
         }
     }
 
+    if (!parse.type)
+        fatal("expected typename");
+
     if (isType(kType_identifier)) {
-        parse.name = m_token.identifier();
+        parse.name = m_token.m_identifier;
         next(); // skip identifier
     }
     if (isOperator(kOperator_bracket_begin)) {
@@ -269,7 +331,10 @@ astExpression *parser::parseUnaryPrefix(endCondition condition) {
             else
                 return parseFunctionCall();
         } else {
-            return new(gc<astExpression>()) astVariableIdentifier(findVariable(m_token.m_identifier));
+            astVariable *find = findVariable(m_token.m_identifier);
+            if (find)
+                return new(gc<astExpression>()) astVariableIdentifier(find);
+            fatal("`%s' was not declared in this scope", m_token.m_identifier.c_str());
         }
     } else if (isKeyword(kKeyword_true))
         return new(gc<astExpression>()) astBoolConstant(true);
@@ -283,6 +348,8 @@ astExpression *parser::parseUnaryPrefix(endCondition condition) {
         return new(gc<astExpression>()) astFloatConstant(m_token.asFloat);
     else if (isType(kType_constant_double))
         return new(gc<astExpression>()) astDoubleConstant(m_token.asDouble);
+    else if (condition == kEndConditionBracket)
+        return 0;
     fatal("syntax error");
     return 0;
 }
@@ -609,10 +676,21 @@ astFunction *parser::parseFunction(const stage &parse) {
                 parameter->precision = kMediump;
             else if (isKeyword(kKeyword_lowp))
                 parameter->precision = kLowp;
+            else if (isKeyword(kKeyword_coherent))
+                parameter->memory = kCoherent;
+            else if (isKeyword(kKeyword_volatile))
+                parameter->memory = kVolatile;
+            else if (isKeyword(kKeyword_restrict))
+                parameter->memory = kRestrict;
+            else if (isKeyword(kKeyword_readonly))
+                parameter->memory = kReadOnly;
+            else if (isKeyword(kKeyword_writeonly))
+                parameter->memory = kWriteOnly;
             else if (isType(kType_identifier)) {
                 // TODO: user defined types
                 parameter->name = m_token.m_identifier;
             } else if (isOperator(kOperator_bracket_begin)) {
+                parameter->isArray = true;
                 parameter->arraySize = parseArraySize();
             } else {
                 parameter->type = parseBuiltin();
@@ -650,7 +728,7 @@ astFunction *parser::parseFunction(const stage &parse) {
     return function;
 }
 
-// TODO: clenaup
+// TODO: cleanup
 #undef TYPENAME
 #define TYPENAME(X) case kKeyword_##X:
 astBuiltin *parser::parseBuiltin() {
