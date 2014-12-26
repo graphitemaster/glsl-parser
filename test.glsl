@@ -36,7 +36,7 @@ patch out float test_patch_out_after;
 
 smooth float test_smooth;
 flat float test_flat;
-//noperspective float test_noperspective; // Broken
+noperspective float test_noperspective;
 
 void test_function_empty_proto();
 void test_function_empty_void_proto(void);

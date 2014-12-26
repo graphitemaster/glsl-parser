@@ -188,9 +188,6 @@ stage parser::parseGlobalItem(stage *continuation) {
     if (isKeyword(kKeyword_invariant)) {
         parse.flags |= kInvariant;
         next(); // skip 'invariant'
-    } else if (isKeyword(kKeyword_noperspective)) {
-        parse.flags |= kNoPerspective;
-        next(); // skip 'noperspective'
     }
 
     // smooth/flat/noperspective
