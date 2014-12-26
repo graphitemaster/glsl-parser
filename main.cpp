@@ -214,22 +214,22 @@ static void printPostDecrement(astPostDecrementExpression *expression) {
 
 static void printUnaryMinus(astUnaryMinusExpression *expression) {
     print("-");
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
 }
 
 static void printUnaryPlus(astUnaryPlusExpression *expression) {
     print("+");
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
 }
 
 static void printUnaryBitNot(astUnaryBitNotExpression *expression) {
     print("~");
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
 }
 
 static void printUnaryLogicalNot(astUnaryLogicalNotExpression *expression) {
     print("!");
-    printExpression((astExpression*)expression);
+    printExpression(expression->operand);
 }
 
 static void printPrefixIncrement(astPrefixIncrementExpression *expression) {
@@ -493,7 +493,7 @@ int main(int argc, char **argv) {
 
     FILE *fp = fopen(argv[0], "r");
     if (!fp) {
-        fprintf(stderr, "failed to open `%s\n", argv[0]);
+        fprintf(stderr, "failed to open `%s'\n", argv[0]);
         return 1;
     }
 

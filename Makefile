@@ -5,7 +5,7 @@ CXXFLAGS = \
 	-Wall \
 	-g3
 
-BIN = test
+BIN = glsl-parser
 
 SOURCES = \
 	ast.cpp \
@@ -30,5 +30,8 @@ $(BIN): $(OBJECTS)
 clean:
 	rm -f $(OBJECTS) $(OBJECTS:.o=.P)
 	rm -f $(BIN)
+
+test: $(BIN)
+	@python3 ./test.py
 
 -include *.P
