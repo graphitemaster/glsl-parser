@@ -84,11 +84,11 @@ astTU *parser::parse() {
             if (isType(kType_eof))
                 break;
 
-            std::vector<stage> stages = parseGlobalScope();
+            std::vector<topLevel> items = parseTopLevel();
 
             if (isType(kType_semicolon)) {
-                for (size_t i = 0; i < stages.size(); i++) {
-                    stage &parse = stages[i];
+                for (size_t i = 0; i < items.size(); i++) {
+                    topLevel &parse = items[i];
                     astGlobalVariable *global = GC_NEW(astVariable) astGlobalVariable();
                     global->storage = parse.storage;
                     global->auxiliary = parse.auxiliary;
@@ -103,7 +103,7 @@ astTU *parser::parse() {
                     m_scopes.back().push_back(global);
                 }
             } else if (isOperator(kOperator_paranthesis_begin)) {
-                m_ast->functions.push_back(parseFunction(stages.front()));
+                m_ast->functions.push_back(parseFunction(items.front()));
             } else if (isType(kType_whitespace)) {
                 continue; // whitespace tokens will be used later for the preprocessor
             } else {
@@ -115,7 +115,7 @@ astTU *parser::parse() {
     return 0;
 }
 
-void parser::parseStorage(stage &current) {
+void parser::parseStorage(topLevel &current) {
     // const, in, out, attribute, uniform, varying, buffer, shared
     if (isKeyword(kKeyword_const)) {
         current.storage = kConst;
@@ -144,7 +144,7 @@ void parser::parseStorage(stage &current) {
     }
 }
 
-void parser::parseAuxiliary(stage &current) {
+void parser::parseAuxiliary(topLevel &current) {
     // centroid, sample, patch
     if (isKeyword(kKeyword_centroid)) {
         current.auxiliary = kCentroid;
@@ -158,7 +158,7 @@ void parser::parseAuxiliary(stage &current) {
     }
 }
 
-void parser::parseInterpolation(stage &current) {
+void parser::parseInterpolation(topLevel &current) {
     // smooth, flat, noperspective
     if (isKeyword(kKeyword_smooth)) {
         current.interpolation = kSmooth;
@@ -172,7 +172,7 @@ void parser::parseInterpolation(stage &current) {
     }
 }
 
-void parser::parsePrecision(stage &current) {
+void parser::parsePrecision(topLevel &current) {
     // highp, mediump, lowp
     if (isKeyword(kKeyword_highp)) {
         current.precision = kHighp;
@@ -186,7 +186,7 @@ void parser::parsePrecision(stage &current) {
     }
 }
 
-void parser::parseInvariant(stage &current) {
+void parser::parseInvariant(topLevel &current) {
     // invariant
     if (isKeyword(kKeyword_invariant)) {
         // TODO:
@@ -194,7 +194,7 @@ void parser::parseInvariant(stage &current) {
     }
 }
 
-void parser::parsePrecise(stage &current) {
+void parser::parsePrecise(topLevel &current) {
     // precise
     if (isKeyword(kKeyword_precise)) {
         // TODO:
@@ -202,7 +202,7 @@ void parser::parsePrecise(stage &current) {
     }
 }
 
-void parser::parseMemory(stage &current) {
+void parser::parseMemory(topLevel &current) {
     // coherent, volatile, restrict, readonly, writeonly
     if (isKeyword(kKeyword_coherent)) {
         current.memory |= kCoherent;
@@ -222,75 +222,86 @@ void parser::parseMemory(stage &current) {
     }
 }
 
-stage parser::parseGlobalItem(stage *continuation) {
-    stage parse;
+topLevel parser::parseTopLevelItem(topLevel *continuation) {
+    std::vector<topLevel> items;
+    while (!isBuiltin() && !isType(kType_identifier)) {
+        topLevel next;
+        if (continuation)
+            next = *continuation;
+        parseStorage(next);
+        parseAuxiliary(next);
+        parseInterpolation(next);
+        parsePrecision(next);
+        parseInvariant(next);
+        parsePrecise(next);
+        parseMemory(next);
+        items.push_back(next);
+    }
 
-    // Inherit the previous type if this is a continuation "T a, b, c;"
+    topLevel level;
     if (continuation)
-        parse = *continuation;
-
-    parseStorage(parse);
-    parseAuxiliary(parse);
-    parseInterpolation(parse);
-    parsePrecision(parse);
-    parseInvariant(parse);
-    parsePrecise(parse);
-    parseMemory(parse);
-
-    // Do another pass since the qualifiers can appear anywhere as long as
-    // it's before the type
-    if (parse.storage == -1)
-        parseStorage(parse);
-    if (parse.auxiliary == -1)
-        parseAuxiliary(parse);
-    if (parse.interpolation == -1)
-        parseInterpolation(parse);
-    if (parse.precision == -1)
-        parsePrecision(parse);
-    if (parse.memory == 0)
-        parseMemory(parse);
+        level = *continuation;
+    for (size_t i = 1; i < items.size(); i++) {
+        topLevel &next = items[i];
+        if (next.storage != -1 && level.storage != -1)
+            fatal("multiple storage qualifiers in declaration");
+        if (next.auxiliary != -1 && level.auxiliary != -1)
+            fatal("multiple auxiliary storage qualifiers in declaration");
+        if (next.interpolation != -1 && level.interpolation != -1)
+            fatal("multiple interpolation qualifiers in declaration");
+        if (next.precision != -1 && level.precision != -1)
+            fatal("multiple precision qualifiers in declaration");
+        level.storage = next.storage;
+        level.auxiliary = next.auxiliary;
+        level.interpolation = next.interpolation;
+        level.precision = next.precision;
+        level.memory |= next.memory;
+    }
 
     if (!continuation) {
-        if (isKeyword(kKeyword_struct)) {
-            parse.type = parseStruct();
-            next();
-        } else if (isType(kType_identifier)) {
-            parse.type = findType(m_token.m_identifier);
-            next();
+        if (isType(kType_identifier)) {
+            level.type = findType(m_token.m_identifier);
+            next(); // skip identifier
         } else {
-            parse.type = parseBuiltin();
-            next();
+            level.type = parseBuiltin();
+            next(); // skip typename
+        }
+
+        if (level.type) {
+            // Could be an array
             while (isOperator(kOperator_bracket_begin)) {
-                parse.isArray = true;
-                parse.arraySizes.insert(parse.arraySizes.begin(), parseArraySize());
-                next(); // skip ']' (parseArraySize skips '[')
+                level.isArray = true;
+                level.arraySizes.insert(level.arraySizes.begin(), parseArraySize());
+                next(); // skip ']'
             }
         }
     }
 
-    if (!parse.type)
+    if (!level.type)
         fatal("expected typename");
 
     if (isType(kType_identifier)) {
-        parse.name = m_token.m_identifier;
+        level.name = m_token.m_identifier;
         next(); // skip identifier
     }
+
     while (isOperator(kOperator_bracket_begin)) {
-        parse.isArray = true;
-        parse.arraySizes.push_back(parseArraySize());
-        next(); // skip ']' (parseArraySize skips '[')
+        level.isArray = true;
+        level.arraySizes.push_back(parseArraySize());
+        next(); // skip ']'
     }
-    return parse;
+
+    return level;
 }
 
-std::vector<stage> parser::parseGlobalScope() {
-    std::vector<stage> stages;
-    stages.push_back(parseGlobalItem());
+std::vector<topLevel> parser::parseTopLevel() {
+    std::vector<topLevel> items;
+    items.push_back(parseTopLevelItem());
     while (isOperator(kOperator_comma)) {
         next(); // skip ','
-        stages.push_back(parseGlobalItem(&stages.front()));
+        items.push_back(parseTopLevelItem(&items.front()));
     }
-    return stages;
+    return items;
 }
 
 void parser::parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers) {
@@ -685,7 +696,7 @@ astStatement *parser::parseStatement() {
         return parseDeclarationOrExpressionStatement(kEndConditionSemicolon);
 }
 
-astFunction *parser::parseFunction(const stage &parse) {
+astFunction *parser::parseFunction(const topLevel &parse) {
     astFunction *function = GC_NEW(astFunction) astFunction();
     function->returnType = parse.type;
     function->name = parse.name;

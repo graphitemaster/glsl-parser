@@ -7,8 +7,8 @@
 
 namespace glsl {
 
-struct stage {
-    stage()
+struct topLevel {
+    topLevel()
         : storage(-1)
         , auxiliary(-1)
         , memory(0)
@@ -50,16 +50,16 @@ protected:
 
     void next();
 
-    void parseStorage(stage &current); // const, in, out, attribute, uniform, varying, buffer, shared
-    void parseAuxiliary(stage &current); // centroid, sample, patch
-    void parseInterpolation(stage &current); // smooth, flat, noperspective
-    void parsePrecision(stage &current); // highp, mediump, lowp
-    void parseInvariant(stage &current); // invariant
-    void parsePrecise(stage &current); // precise
-    void parseMemory(stage &current); // coherent, volatile, restrict, readonly, writeonly
+    void parseStorage(topLevel &current); // const, in, out, attribute, uniform, varying, buffer, shared
+    void parseAuxiliary(topLevel &current); // centroid, sample, patch
+    void parseInterpolation(topLevel &current); // smooth, flat, noperspective
+    void parsePrecision(topLevel &current); // highp, mediump, lowp
+    void parseInvariant(topLevel &current); // invariant
+    void parsePrecise(topLevel &current); // precise
+    void parseMemory(topLevel &current); // coherent, volatile, restrict, readonly, writeonly
 
-    stage parseGlobalItem(stage *continuation = 0);
-    std::vector<stage> parseGlobalScope();
+    topLevel parseTopLevelItem(topLevel *continuation = 0);
+    std::vector<topLevel> parseTopLevel();
 
     bool isType(int type) const;
     bool isKeyword(int keyword) const;
@@ -74,7 +74,7 @@ protected:
     // Type parsers
     astBuiltin *parseBuiltin();
     astStruct *parseStruct();
-    astFunction *parseFunction(const stage &parse);
+    astFunction *parseFunction(const topLevel &parse);
 
     // Call parsers
     astConstructorCall *parseConstructorCall();
