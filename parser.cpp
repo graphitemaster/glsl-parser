@@ -482,6 +482,12 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
         }
     }
 
+    // If it isn't a function or prototype than the use of void is not legal
+    if (!isOperator(kOperator_paranthesis_begin)) {
+        if (level.type->builtin && ((astBuiltin*)level.type)->type == kKeyword_void)
+            fatal("`void' cannot be used in declaration");
+    }
+
     return level;
 }
 
