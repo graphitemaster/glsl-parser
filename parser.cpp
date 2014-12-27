@@ -52,11 +52,13 @@ bool parser::isConstant(astExpression *expression) const {
         return true;
     } else if (expression->type == astExpression::kVariableIdentifier) {
         astVariable *reference = ((astVariableIdentifier*)expression)->variable;
-        if (reference->type != astVariable::kGlobal)
+        if (reference->type != astVariable::kGlobal) {
             return false;
+        }
         astExpression *initialValue = ((astGlobalVariable*)reference)->initialValue;
-        if (!initialValue)
+        if (!initialValue) {
             return false;
+        }
         return isConstant(initialValue);
     } else if (expression->type == astExpression::kUnaryMinus) {
         return isConstant(((astUnaryExpression*)expression)->operand);
@@ -96,8 +98,9 @@ bool parser::isConstantValue(astExpression *expression) const {
 #define BVAL(X) (BCONST(X)->value)
 
 astConstantExpression *parser::evaluate(astExpression *expression) {
-    if (isConstantValue(expression))
+    if (isConstantValue(expression)) {
         return expression;
+    }
     else if (expression->type == astExpression::kVariableIdentifier) {
         return evaluate(((astGlobalVariable*)((astVariableIdentifier*)expression)->variable)->initialValue);
     } else if (expression->type == astExpression::kUnaryMinus) {
@@ -260,8 +263,9 @@ astTU *parser::parse(int type) {
         m_scopes.push_back(scope());
         for (;;) {
             m_lexer.read(m_token, true);
-            if (isType(kType_eof))
+            if (isType(kType_eof)) {
                 break;
+            }
 
             std::vector<topLevel> items = parseTopLevel();
 
@@ -276,8 +280,9 @@ astTU *parser::parse(int type) {
                     global->interpolation = parse.interpolation;
                     global->baseType = parse.type;
                     global->name = parse.name;
-                    if (parse.initialValue)
+                    if (parse.initialValue) {
                         global->initialValue = evaluate(parse.initialValue);
+                    }
                     global->isArray = parse.isArray;
                     global->arraySizes = parse.arraySizes;
                     m_ast->globals.push_back(global);
@@ -407,8 +412,9 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
     std::vector<topLevel> items;
     while (!isBuiltin() && !isType(kType_identifier)) {
         topLevel next;
-        if (continuation)
+        if (continuation) {
             next = *continuation;
+        }
         parseStorage(next);
         parseAuxiliary(next);
         parseInterpolation(next);
@@ -420,8 +426,9 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
     }
 
     topLevel level;
-    if (continuation)
+    if (continuation) {
         level = *continuation;
+    }
     for (size_t i = 0; i < items.size(); i++) {
         topLevel &next = items[i];
         const int storage = level.storage != -1 ? level.storage : next.storage;
@@ -493,8 +500,9 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
         }
     }
 
-    if (!level.type)
+    if (!level.type) {
         fatal("expected typename");
+    }
 
     if (isType(kType_identifier)) {
         level.name = m_token.m_identifier;
@@ -512,8 +520,9 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
         if (isOperator(kOperator_assign)) {
             next(); // skip '='
             level.initialValue = parseExpression(kEndConditionSemicolon);
-            if (!isConstant(level.initialValue))
+            if (!isConstant(level.initialValue)) {
                 fatal("not a valid constant expression");
+            }
         } else {
             fatal("const-qualified variable declared but not initialized");
         }
@@ -521,8 +530,9 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
 
     // If it isn't a function or prototype than the use of void is not legal
     if (!isOperator(kOperator_paranthesis_begin)) {
-        if (level.type->builtin && ((astBuiltin*)level.type)->type == kKeyword_void)
+        if (level.type->builtin && ((astBuiltin*)level.type)->type == kKeyword_void) {
             fatal("`void' cannot be used in declaration");
+        }
     }
 
     return level;
@@ -551,8 +561,9 @@ astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCon
     // Precedence climbing
     while (!isEndCondition(end)) {
         int binaryPrecedence = m_token.precedence();
-        if (binaryPrecedence < lhsPrecedence)
+        if (binaryPrecedence < lhsPrecedence) {
             break;
+        }
 
         astBinaryExpression *expression = createExpression();
         next();
@@ -560,24 +571,28 @@ astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCon
         next();
 
         if (((astExpression*)expression)->type == astExpression::kAssign) {
-            if (lhs->type != astExpression::kVariableIdentifier)
+            if (lhs->type != astExpression::kVariableIdentifier) {
                 fatal("not a valid lvalue");
+            }
             astVariable *variable = ((astVariableIdentifier*)lhs)->variable;
             if (variable->type == astVariable::kGlobal) {
                 astGlobalVariable *global = (astGlobalVariable*)variable;
                 // "It's a compile-time error to write to a variable declared as an input"
-                if (global->storage == kIn)
+                if (global->storage == kIn) {
                     fatal("cannot write to a variable declared as input");
+                }
                 // "It's a compile-time error to write to a const variable outside of its declaration."
-                if (global->storage == kConst)
+                if (global->storage == kConst) {
                     fatal("cannot write to a const variable outside of its declaration");
+                }
             }
         }
 
         int rhsPrecedence = m_token.precedence();
         // climb
-        if (binaryPrecedence < rhsPrecedence)
+        if (binaryPrecedence < rhsPrecedence) {
             rhs = parseBinary(binaryPrecedence + 1, rhs, end);
+        }
 
         expression->operand1 = lhs;
         expression->operand2 = rhs;
@@ -614,30 +629,33 @@ astExpression *parser::parseUnaryPrefix(endCondition condition) {
         token peek = m_lexer.peek();
         if (IS_OPERATOR(peek, kOperator_paranthesis_begin)) {
             astType *type = findType(m_token.m_identifier);
-            if (type)
+            if (type) {
                 return parseConstructorCall();
-            else
+            } else {
                 return parseFunctionCall();
+            }
         } else {
             astVariable *find = findVariable(m_token.m_identifier);
-            if (find)
+            if (find) {
                 return GC_NEW(astExpression) astVariableIdentifier(find);
+            }
             fatal("`%s' was not declared in this scope", m_token.m_identifier.c_str());
         }
-    } else if (isKeyword(kKeyword_true))
-        return GC_NEW(astExpression) astBoolConstant(true);
-    else if (isKeyword(kKeyword_false))
-        return GC_NEW(astExpression) astBoolConstant(false);
-    else if (isType(kType_constant_int))
-        return GC_NEW(astExpression) astIntConstant(m_token.asInt);
-    else if (isType(kType_constant_uint))
-        return GC_NEW(astExpression) astUIntConstant(m_token.asUnsigned);
-    else if (isType(kType_constant_float))
-        return GC_NEW(astExpression) astFloatConstant(m_token.asFloat);
-    else if (isType(kType_constant_double))
-        return GC_NEW(astExpression) astDoubleConstant(m_token.asDouble);
-    else if (condition == kEndConditionBracket)
+    } else if (isKeyword(kKeyword_true)) {
+        return BCONST_NEW(true);
+    } else if (isKeyword(kKeyword_false)) {
+        return BCONST_NEW(false);
+    } else if (isType(kType_constant_int)) {
+        return ICONST_NEW(m_token.asInt);
+    } else if (isType(kType_constant_uint)) {
+        return UCONST_NEW(m_token.asUnsigned);
+    } else if (isType(kType_constant_float)) {
+        return FCONST_NEW(m_token.asFloat);
+    } else if (isType(kType_constant_double)) {
+        return DCONST_NEW(m_token.asDouble);
+    } else if (condition == kEndConditionBracket) {
         return 0;
+    }
     fatal("syntax error");
     return 0;
 }
@@ -649,8 +667,9 @@ astExpression *parser::parseUnary(endCondition end) {
         if (IS_OPERATOR(peek, kOperator_dot)) {
             next(); // skip last
             next(); // skip '.'
-            if (!isType(kType_identifier))
+            if (!isType(kType_identifier)) {
                 fatal("expected field identifier or swizzle after `.'");
+            }
             astFieldOrSwizzle *expression = GC_NEW(astExpression) astFieldOrSwizzle();
             expression->operand = operand;
             expression->name = peek.m_identifier;
@@ -703,8 +722,9 @@ astCompoundStatement *parser::parseCompoundStatement() {
 astIfStatement *parser::parseIfStatement() {
     astIfStatement *statement = GC_NEW(astStatement) astIfStatement();
     next(); // skip 'if'
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' after `if' in if statement");
+    }
     next(); // skip '('
     statement->condition = parseExpression(kEndConditionParanthesis);
     next(); // skip ')'
@@ -721,13 +741,15 @@ astIfStatement *parser::parseIfStatement() {
 astSwitchStatement *parser::parseSwitchStatement() {
     astSwitchStatement *statement = GC_NEW(astStatement) astSwitchStatement();
     next(); // skip 'switch'
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' after `switch' in switch statement");
+    }
     next(); // skip '('
     statement->expression = parseExpression(kEndConditionParanthesis);
     next(); // skip next
-    if (!isType(kType_scope_begin))
+    if (!isType(kType_scope_begin)) {
         fatal("expected `{' after `)' in switch statement");
+    }
     next(); // skip '{'
 
     std::vector<int> seenInts;
@@ -777,8 +799,9 @@ astCaseLabelStatement *parser::parseCaseLabelStatement() {
     if (isKeyword(kKeyword_default)) {
         statement->isDefault = true;
         next(); // skip 'default'
-        if (!isOperator(kOperator_colon))
+        if (!isOperator(kOperator_colon)) {
             fatal("expected `:' after `default' in case label");
+        }
     } else {
         next(); // skip 'case'
         statement->condition = parseExpression(kEndConditionColon);
@@ -789,17 +812,21 @@ astCaseLabelStatement *parser::parseCaseLabelStatement() {
 astForStatement *parser::parseForStatement() {
     astForStatement *statement = GC_NEW(astStatement) astForStatement();
     next(); // skip 'for'
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' after `for' in for statement");
+    }
     next(); // skip '('
-    if (!isType(kType_semicolon))
+    if (!isType(kType_semicolon)) {
         statement->init = parseDeclarationOrExpressionStatement(kEndConditionSemicolon);
+    }
     next(); // skip ';'
-    if (!isType(kType_semicolon))
+    if (!isType(kType_semicolon)) {
         statement->condition = parseExpression(kEndConditionSemicolon);
+    }
     next(); // skip ';'
-    if (!isOperator(kOperator_paranthesis_end))
+    if (!isOperator(kOperator_paranthesis_end)) {
         statement->loop = parseExpression(kEndConditionParanthesis);
+    }
     next(); // skip ')'
     statement->body = parseStatement();
     return statement;
@@ -826,8 +853,9 @@ astDiscardStatement *parser::parseDiscardStatement() {
 astReturnStatement *parser::parseReturnStatement() {
     astReturnStatement *statement = GC_NEW(astStatement) astReturnStatement();
     next(); // skip 'return'
-    if (!isType(kType_semicolon))
+    if (!isType(kType_semicolon)) {
         statement->expression = parseExpression(kEndConditionSemicolon);
+    }
     return statement;
 }
 
@@ -836,11 +864,13 @@ astDoStatement *parser::parseDoStatement() {
     next(); // skip 'do'
     statement->body = parseStatement();
     next();
-    if (!isKeyword(kKeyword_while))
+    if (!isKeyword(kKeyword_while)) {
         fatal("expected `while' after `do' in do-while loop");
+    }
     next(); // skip 'while'
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' after `while' in do-while loop");
+    }
     next(); // skip '('
     statement->condition = parseExpression(kEndConditionParanthesis);
     next();
@@ -850,8 +880,9 @@ astDoStatement *parser::parseDoStatement() {
 astWhileStatement *parser::parseWhileStatement() {
     astWhileStatement *statement = GC_NEW(astStatement) astWhileStatement();
     next(); // skip 'while'
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' after `while' in while-loop");
+    }
     next(); // skip '('
     statement->condition = parseDeclarationOrExpressionStatement(kEndConditionParanthesis);
     next();
@@ -869,10 +900,11 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
     }
 
     astType *type = 0;
-    if (isBuiltin())
+    if (isBuiltin()) {
         type = parseBuiltin();
-    else if (isType(kType_identifier))
+    } else if (isType(kType_identifier)) {
         type = findType(m_token.m_identifier);
+    }
 
     if (!type) {
         m_lexer.restore();
@@ -925,11 +957,11 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
         statement->variables.push_back(variable);
         m_scopes.back().push_back(variable);
 
-        if (isEndCondition(condition))
+        if (isEndCondition(condition)) {
             break;
-        else if (isOperator(kOperator_comma))
+        } else if (isOperator(kOperator_comma)) {
             next(); // skip ','
-        else if (isOperator(kOperator_bracket_begin)) {
+        } else if (isOperator(kOperator_bracket_begin)) {
             while (isOperator(kOperator_bracket_begin)) {
                 variable->isArray = true;
                 variable->arraySizes.push_back(parseArraySize());
@@ -945,39 +977,41 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
 
 astSimpleStatement *parser::parseDeclarationOrExpressionStatement(endCondition condition) {
     astSimpleStatement *declaration = parseDeclarationStatement(condition);
-    if (declaration)
+    if (declaration) {
         return declaration;
-    else
+    } else {
         return parseExpressionStatement(condition);
+    }
 }
 
 astStatement *parser::parseStatement() {
-    if (isType(kType_scope_begin))
+    if (isType(kType_scope_begin)) {
         return parseCompoundStatement();
-    else if (isKeyword(kKeyword_if))
+    } else if (isKeyword(kKeyword_if)) {
         return parseIfStatement();
-    else if (isKeyword(kKeyword_switch))
+    } else if (isKeyword(kKeyword_switch)) {
         return parseSwitchStatement();
-    else if (isKeyword(kKeyword_case) || isKeyword(kKeyword_default))
+    } else if (isKeyword(kKeyword_case) || isKeyword(kKeyword_default)) {
         return parseCaseLabelStatement();
-    else if (isKeyword(kKeyword_for))
+    } else if (isKeyword(kKeyword_for)) {
         return parseForStatement();
-    else if (isKeyword(kKeyword_do))
+    } else if (isKeyword(kKeyword_do)) {
         return parseDoStatement();
-    else if (isKeyword(kKeyword_while))
+    } else if (isKeyword(kKeyword_while)) {
         return parseWhileStatement();
-    else if (isKeyword(kKeyword_continue))
+    } else if (isKeyword(kKeyword_continue)) {
         return parseContinueStatement();
-    else if (isKeyword(kKeyword_break))
+    } else if (isKeyword(kKeyword_break)) {
         return parseBreakStatement();
-    else if (isKeyword(kKeyword_discard))
+    } else if (isKeyword(kKeyword_discard)) {
         return parseDiscardStatement();
-    else if (isKeyword(kKeyword_return))
+    } else if (isKeyword(kKeyword_return)) {
         return parseReturnStatement();
-    else if (isType(kType_semicolon))
+    } else if (isType(kType_semicolon)) {
         return GC_NEW(astStatement) astEmptyStatement();
-    else
+    } else {
         return parseDeclarationOrExpressionStatement(kEndConditionSemicolon);
+    }
 }
 
 astFunction *parser::parseFunction(const topLevel &parse) {
@@ -989,29 +1023,29 @@ astFunction *parser::parseFunction(const topLevel &parse) {
     while (!isOperator(kOperator_paranthesis_end)) {
         astFunctionParameter *parameter = GC_NEW(astVariable) astFunctionParameter();
         while (!isOperator(kOperator_comma) && !isOperator(kOperator_paranthesis_end)) {
-            if (isKeyword(kKeyword_in))
+            if (isKeyword(kKeyword_in)) {
                 parameter->storage = kIn;
-            else if (isKeyword(kKeyword_out))
+            } else if (isKeyword(kKeyword_out)) {
                 parameter->storage = kOut;
-            else if (isKeyword(kKeyword_inout))
+            } else if (isKeyword(kKeyword_inout)) {
                 parameter->storage = kInOut;
-            else if (isKeyword(kKeyword_highp))
+            } else if (isKeyword(kKeyword_highp)) {
                 parameter->precision = kHighp;
-            else if (isKeyword(kKeyword_mediump))
+            } else if (isKeyword(kKeyword_mediump)) {
                 parameter->precision = kMediump;
-            else if (isKeyword(kKeyword_lowp))
+            } else if (isKeyword(kKeyword_lowp)) {
                 parameter->precision = kLowp;
-            else if (isKeyword(kKeyword_coherent))
+            } else if (isKeyword(kKeyword_coherent)) {
                 parameter->memory = kCoherent;
-            else if (isKeyword(kKeyword_volatile))
+            } else if (isKeyword(kKeyword_volatile)) {
                 parameter->memory = kVolatile;
-            else if (isKeyword(kKeyword_restrict))
+            } else if (isKeyword(kKeyword_restrict)) {
                 parameter->memory = kRestrict;
-            else if (isKeyword(kKeyword_readonly))
+            } else if (isKeyword(kKeyword_readonly)) {
                 parameter->memory = kReadOnly;
-            else if (isKeyword(kKeyword_writeonly))
+            } else if (isKeyword(kKeyword_writeonly)) {
                 parameter->memory = kWriteOnly;
-            else if (isType(kType_identifier)) {
+            } else if (isType(kType_identifier)) {
                 // TODO: user defined types
                 parameter->name = m_token.m_identifier;
             } else if (isOperator(kOperator_bracket_begin)) {
@@ -1031,11 +1065,13 @@ astFunction *parser::parseFunction(const topLevel &parse) {
             next();
         }
 
-        if (!parameter->baseType)
+        if (!parameter->baseType) {
             fatal("expected type");
+        }
         function->parameters.push_back(parameter);
-        if (isOperator(kOperator_comma))
+        if (isOperator(kOperator_comma)) {
             next(); // skip ','
+        }
     }
     next(); // skip ')'
 
@@ -1043,18 +1079,21 @@ astFunction *parser::parseFunction(const topLevel &parse) {
     if (function->parameters.size() == 1) {
         if (function->parameters[0]->baseType->builtin) {
             astBuiltin *builtin = (astBuiltin*)function->parameters[0]->baseType;
-            if (builtin->type == kKeyword_void)
+            if (builtin->type == kKeyword_void) {
                 function->parameters.pop_back();
+            }
         }
     }
 
     // "It is a compile-time or link-time error to declare or define a function main with any other parameters or
     //  return type."
     if (function->name == "main") {
-        if (!function->parameters.empty())
+        if (!function->parameters.empty()) {
             fatal("`main' cannot have parameters");
-        if (!function->returnType->builtin || ((astBuiltin*)function->returnType)->type != kKeyword_void)
+        }
+        if (!function->returnType->builtin || ((astBuiltin*)function->returnType)->type != kKeyword_void) {
             fatal("`main' must be declared to return void");
+        }
     }
 
     if (isType(kType_scope_begin)) {
@@ -1062,9 +1101,9 @@ astFunction *parser::parseFunction(const topLevel &parse) {
         next(); // skip '{'
 
         m_scopes.push_back(scope());
-        for (size_t i = 0; i < function->parameters.size(); i++)
+        for (size_t i = 0; i < function->parameters.size(); i++) {
             m_scopes.back().push_back(function->parameters[i]);
-
+        }
         while (!isType(kType_scope_end)) {
             function->statements.push_back(parseStatement());
             next(); // skip ';'
@@ -1083,14 +1122,17 @@ astFunction *parser::parseFunction(const topLevel &parse) {
 #undef TYPENAME
 #define TYPENAME(X) case kKeyword_##X:
 astBuiltin *parser::parseBuiltin() {
-    if (!isType(kType_keyword))
+    if (!isType(kType_keyword)) {
         fatal("expected keyword");
+    }
 
     switch (m_token.m_keyword) {
         #include "lexemes.h"
-            for (size_t i = 0; i < m_builtins.size(); i++)
-                if (m_builtins[i]->type == m_token.m_keyword)
+            for (size_t i = 0; i < m_builtins.size(); i++) {
+                if (m_builtins[i]->type == m_token.m_keyword) {
                     return m_builtins[i];
+                }
+            }
             m_builtins.push_back(GC_NEW(astType) astBuiltin(m_token.m_keyword));
             return m_builtins.back();
             break;
@@ -1106,14 +1148,16 @@ astConstructorCall *parser::parseConstructorCall() {
     astConstructorCall *expression = GC_NEW(astExpression) astConstructorCall();
     expression->type = parseBuiltin();
     next();
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' in constructor call");
+    }
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
         astExpression *parameter = parseExpression(kEndConditionComma | kEndConditionParanthesis);
         expression->parameters.push_back(parameter);
-        if (isOperator(kOperator_comma))
+        if (isOperator(kOperator_comma)) {
             next(); // skip ','
+        }
     }
     return expression;
 }
@@ -1122,64 +1166,68 @@ astFunctionCall *parser::parseFunctionCall() {
     astFunctionCall *expression = GC_NEW(astExpression) astFunctionCall();
     expression->name = m_token.m_identifier;
     next(); // skip identifier
-    if (!isOperator(kOperator_paranthesis_begin))
+    if (!isOperator(kOperator_paranthesis_begin)) {
         fatal("expected `(' in function call");
+    }
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
         astExpression *parameter = parseExpression(kEndConditionComma | kEndConditionParanthesis);
         expression->parameters.push_back(parameter);
-        if (isOperator(kOperator_comma))
+        if (isOperator(kOperator_comma)) {
             next(); // skip ','
+        }
     }
     return expression;
 }
 
 void parser::next() {
     m_lexer.read(m_token, true);
-    if (isType(kType_eof))
+    if (isType(kType_eof)) {
         fatal("premature end of file");
+    }
 }
 
 astBinaryExpression *parser::createExpression() {
-    if (!isType(kType_operator))
+    if (!isType(kType_operator)) {
         fatal("internal compiler error: attempted to create binary expression in wrong context");
+    }
 
     switch (m_token.m_operator) {
-        case kOperator_multiply:
-        case kOperator_divide:
-        case kOperator_modulus:
-        case kOperator_plus:
-        case kOperator_minus:
-        case kOperator_shift_left:
-        case kOperator_shift_right:
-        case kOperator_less:
-        case kOperator_greater:
-        case kOperator_less_equal:
-        case kOperator_greater_equal:
-        case kOperator_equal:
-        case kOperator_not_equal:
-        case kOperator_bit_and:
-        case kOperator_bit_xor:
-        case kOperator_logical_and:
-        case kOperator_logical_xor:
-        case kOperator_logical_or:
-            return GC_NEW(astExpression) astOperationExpression(m_token.m_operator);
-        case kOperator_assign:
-        case kOperator_add_assign:
-        case kOperator_sub_assign:
-        case kOperator_multiply_assign:
-        case kOperator_divide_assign:
-        case kOperator_modulus_assign:
-        case kOperator_shift_left_assign:
-        case kOperator_shift_right_assign:
-        case kOperator_bit_and_assign:
-        case kOperator_bit_xor_assign:
-        case kOperator_bit_or_assign:
-            return GC_NEW(astExpression) astAssignmentExpression(m_token.m_operator);
-        case kOperator_comma:
-            return GC_NEW(astExpression) astSequenceExpression();
-        default:
-            return 0;
+    case kOperator_multiply:
+    case kOperator_divide:
+    case kOperator_modulus:
+    case kOperator_plus:
+    case kOperator_minus:
+    case kOperator_shift_left:
+    case kOperator_shift_right:
+    case kOperator_less:
+    case kOperator_greater:
+    case kOperator_less_equal:
+    case kOperator_greater_equal:
+    case kOperator_equal:
+    case kOperator_not_equal:
+    case kOperator_bit_and:
+    case kOperator_bit_xor:
+    case kOperator_logical_and:
+    case kOperator_logical_xor:
+    case kOperator_logical_or:
+        return GC_NEW(astExpression) astOperationExpression(m_token.m_operator);
+    case kOperator_assign:
+    case kOperator_add_assign:
+    case kOperator_sub_assign:
+    case kOperator_multiply_assign:
+    case kOperator_divide_assign:
+    case kOperator_modulus_assign:
+    case kOperator_shift_left_assign:
+    case kOperator_shift_right_assign:
+    case kOperator_bit_and_assign:
+    case kOperator_bit_xor_assign:
+    case kOperator_bit_or_assign:
+        return GC_NEW(astExpression) astAssignmentExpression(m_token.m_operator);
+    case kOperator_comma:
+        return GC_NEW(astExpression) astSequenceExpression();
+    default:
+        return 0;
     }
 }
 
@@ -1191,9 +1239,11 @@ astType *parser::findType(const std::string &identifier) {
 astVariable *parser::findVariable(const std::string &identifier) {
     for (size_t scopeIndex = m_scopes.size(); scopeIndex > 0; scopeIndex--) {
         scope &s = m_scopes[scopeIndex - 1];
-        for (size_t variableIndex = 0; variableIndex < s.size(); variableIndex++)
-            if (s[variableIndex]->name == identifier)
+        for (size_t variableIndex = 0; variableIndex < s.size(); variableIndex++) {
+            if (s[variableIndex]->name == identifier) {
                 return s[variableIndex];
+            }
+        }
     }
     return 0;
 }
