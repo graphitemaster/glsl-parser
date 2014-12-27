@@ -3,7 +3,9 @@ CXXFLAGS = \
 	-fno-rtti \
 	-fno-exceptions \
 	-Wall \
-	-g3
+	-Wextra \
+	-Wformat \
+	-O2
 
 BIN = glsl-parser
 

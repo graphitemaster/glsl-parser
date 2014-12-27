@@ -372,7 +372,7 @@ void parser::parsePrecision(topLevel &current) {
     }
 }
 
-void parser::parseInvariant(topLevel &current) {
+void parser::parseInvariant(topLevel &) {
     // invariant
     if (isKeyword(kKeyword_invariant)) {
         // TODO:
@@ -380,7 +380,7 @@ void parser::parseInvariant(topLevel &current) {
     }
 }
 
-void parser::parsePrecise(topLevel &current) {
+void parser::parsePrecise(topLevel &) {
     // precise
     if (isKeyword(kKeyword_precise)) {
         // TODO:
@@ -548,7 +548,7 @@ std::vector<topLevel> parser::parseTopLevel() {
     return items;
 }
 
-void parser::parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers) {
+void parser::parseLayout(std::vector<astLayoutQualifier*> &) {
     fatal("not implemented: layout qualifier parsing");
 }
 
@@ -1248,7 +1248,7 @@ astBinaryExpression *parser::createExpression() {
     }
 }
 
-astType *parser::findType(const std::string &identifier) {
+astType *parser::findType(const std::string &) {
     //fatal("not implemented yet: custom types");
     return 0;
 }

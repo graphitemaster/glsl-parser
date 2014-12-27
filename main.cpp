@@ -334,7 +334,7 @@ static void printCompoundStatement(astCompoundStatement *statement) {
     print("}\n");
 }
 
-static void printEmptyStatement(astEmptyStatement *statement) {
+static void printEmptyStatement() {
     print(";");
 }
 
@@ -409,11 +409,11 @@ static void printForStatement(astForStatement *statement) {
     printStatement(statement->body);
 }
 
-static void printContinueStatement(astContinueStatement *statement) {
+static void printContinueStatement() {
     print("continue;\n");
 }
 
-static void printBreakStatement(astBreakStatement *statement) {
+static void printBreakStatement() {
     print("break;\n");
 }
 
@@ -427,7 +427,7 @@ static void printReturnStatement(astReturnStatement *statement) {
     }
 }
 
-static void printDiscardStatement(astDiscardStatement *statement) {
+static void printDiscardStatement() {
     print("discard;\n");
 }
 
@@ -436,7 +436,7 @@ static void printStatement(astStatement *statement) {
         case astStatement::kCompound:
             return printCompoundStatement((astCompoundStatement*)statement);
         case astStatement::kEmpty:
-            return printEmptyStatement((astEmptyStatement*)statement);
+            return printEmptyStatement();
         case astStatement::kDeclaration:
             return printDeclarationStatement((astDeclarationStatement*)statement);
         case astStatement::kExpression:
@@ -454,13 +454,13 @@ static void printStatement(astStatement *statement) {
         case astStatement::kFor:
             return printForStatement((astForStatement*)statement);
         case astStatement::kContinue:
-            return printContinueStatement((astContinueStatement*)statement);
+            return printContinueStatement();
         case astStatement::kBreak:
-            return printBreakStatement((astBreakStatement*)statement);
+            return printBreakStatement();
         case astStatement::kReturn:
             return printReturnStatement((astReturnStatement*)statement);
         case astStatement::kDiscard:
-            return printDiscardStatement((astDiscardStatement*)statement);
+            return printDiscardStatement();
     }
     print("\n");
 }
