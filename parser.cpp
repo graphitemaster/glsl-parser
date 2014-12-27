@@ -241,7 +241,7 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
     topLevel level;
     if (continuation)
         level = *continuation;
-    for (size_t i = 1; i < items.size(); i++) {
+    for (size_t i = 0; i < items.size(); i++) {
         topLevel &next = items[i];
         if (next.storage != -1 && level.storage != -1)
             fatal("multiple storage qualifiers in declaration");
