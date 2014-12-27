@@ -98,7 +98,7 @@ astTU *parser::parse() {
                     global->type = parse.type;
                     global->name = parse.name;
                     global->isArray = parse.isArray;
-                    global->arraySize = parse.arraySize;
+                    global->arraySizes = parse.arraySizes;
                     m_ast->globals.push_back(global);
                     m_scopes.back().push_back(global);
                 }
@@ -270,9 +270,9 @@ stage parser::parseGlobalItem(stage *continuation) {
         parse.name = m_token.m_identifier;
         next(); // skip identifier
     }
-    if (isOperator(kOperator_bracket_begin)) {
+    while (isOperator(kOperator_bracket_begin)) {
         parse.isArray = true;
-        parse.arraySize = parseArraySize();
+        parse.arraySizes.push_back(parseArraySize());
         next(); // skip ']' (parseArraySize skips '[')
     }
     return parse;
@@ -629,10 +629,12 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
             break;
         else if (isOperator(kOperator_comma))
             next(); // skip ','
-        else if (isOperator(kOperator_bracket_begin)){
-            variable->isArray = true;
-            variable->arraySize = parseArraySize();
-            next(); // skip ']'
+        else if (isOperator(kOperator_bracket_begin)) {
+            while (isOperator(kOperator_bracket_begin)) {
+                variable->isArray = true;
+                variable->arraySizes.push_back(parseArraySize());
+                next(); // skip ']'
+            }
         } else {
             fatal("syntax error (declaration)");
         }
@@ -713,8 +715,11 @@ astFunction *parser::parseFunction(const stage &parse) {
                 // TODO: user defined types
                 parameter->name = m_token.m_identifier;
             } else if (isOperator(kOperator_bracket_begin)) {
-                parameter->isArray = true;
-                parameter->arraySize = parseArraySize();
+                while (isOperator(kOperator_bracket_begin)) {
+                    parameter->isArray = true;
+                    parameter->arraySizes.push_back(parseArraySize());
+                    //next(); // ']'
+                }
             } else {
                 parameter->type = parseBuiltin();
             }

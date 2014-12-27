@@ -35,7 +35,6 @@ astBuiltin::astBuiltin(int type)
 astVariable::astVariable()
     : type(0)
     , isArray(false)
-    , arraySize(0)
 {
 }
 

@@ -106,7 +106,7 @@ struct astVariable : astNode<astVariable> {
     std::string name;
     astType *type;
     bool isArray;
-    astConstantExpression *arraySize;
+    std::vector<astConstantExpression *> arraySizes;
 };
 
 struct astFunctionVariable : astVariable {

@@ -15,7 +15,6 @@ struct stage {
         , precision(-1)
         , interpolation(-1)
         , type(0)
-        , arraySize(0)
         , isArray(false)
     {
     }
@@ -26,7 +25,7 @@ struct stage {
     int interpolation;
     std::vector<astLayoutQualifier*> layoutQualifiers;
     astType *type;
-    astConstantExpression *arraySize;
+    std::vector<astConstantExpression*> arraySizes;
     bool isArray;
     std::string name;
 };

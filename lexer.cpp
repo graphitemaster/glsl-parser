@@ -134,6 +134,7 @@ void lexer::read(token &out) {
             } else if ((at() == 'l' && ch1 == 'f') || (at() == 'L' && ch1 == 'F')) {
                 isFloat = false;
                 isDouble = true;
+                m_location.advanceColumn();
             } else if (at() == 'u' || at() == 'U') {
                 if (isFloat) {
                     m_error = "invalid use of suffix on literal";

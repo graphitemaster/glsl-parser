@@ -46,15 +46,23 @@ static void printUIntConstant(astUIntConstant *expression) {
 }
 
 static void printFloatConstant(astFloatConstant *expression) {
-    print("%f", expression->value);
+    print("%g", expression->value);
 }
 
 static void printDoubleConstant(astDoubleConstant *expression) {
-    print("%f", expression->value);
+    print("%g", expression->value);
 }
 
 static void printBoolConstant(astBoolConstant *expression) {
     print("%s", expression->value ? "true" : "false");
+}
+
+static void printArraySize(const std::vector<astConstantExpression*> &arraySizes) {
+    for (size_t i = 0; i < arraySizes.size(); i++) {
+        print("[");
+        printExpression(arraySizes[i]);
+        print("]");
+    }
 }
 
 static void printVariable(astVariable *variable, bool nameOnly = false) {
@@ -69,11 +77,8 @@ static void printVariable(astVariable *variable, bool nameOnly = false) {
     if (nameOnly)
         return;
 
-    if (variable->isArray) {
-        print("[");
-        printExpression(variable->arraySize);
-        print("]");
-    }
+    if (variable->isArray)
+        printArraySize(variable->arraySizes);
 }
 
 static void printStorage(int storage) {
@@ -453,11 +458,8 @@ static void printFunctionParameter(astFunctionParameter *parameter) {
     printType(parameter->type);
     if (parameter->name.size())
         print(" %s", parameter->name.c_str());
-    if (parameter->isArray) {
-        print("[");
-        printExpression(parameter->arraySize);
-        print("]");
-    }
+    if (parameter->isArray)
+        printArraySize(parameter->arraySizes);
 }
 
 static void printFunction(astFunction *function) {
