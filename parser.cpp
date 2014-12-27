@@ -735,7 +735,7 @@ astSwitchStatement *parser::parseSwitchStatement() {
             if (((astCaseLabelStatement*)nextStatement)->isDefault) {
                 // "It's a compile-time error to have more than one default"
                 if (hadDefault)
-                    fatal("duplicate 'default' case label");
+                    fatal("duplicate `default' case label");
                 hadDefault = true;
             }
         }
