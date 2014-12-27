@@ -15,7 +15,7 @@ The straight-forward API allows you to parse GLSL into an abstact-syntax-tree in
 
 ### Possible uses
   * Verify a shader without running it
-  * Find hard-to-find syntax or semantic errors with the superiror diagnostics
+  * Find hard-to-find syntax or semantic errors with the superior diagnostics
   * Extend GLSL
   * Transcompile GLSL to other languages
   * Quickly check or verify something
