@@ -571,7 +571,11 @@ astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCon
         next();
 
         if (((astExpression*)expression)->type == astExpression::kAssign) {
-            if (lhs->type != astExpression::kVariableIdentifier) {
+            astExpression *find = lhs;
+            while (find->type == astExpression::kArraySubscript) {
+                find = ((astArraySubscript*)find)->operand;
+            }
+            if (find->type != astExpression::kVariableIdentifier) {
                 fatal("not a valid lvalue");
             }
             astVariable *variable = ((astVariableIdentifier*)lhs)->variable;
@@ -684,8 +688,18 @@ astExpression *parser::parseUnary(endCondition end) {
             next(); // skip last
             next(); // skip '['
             astArraySubscript *expression = GC_NEW(astExpression) astArraySubscript();
+            if (operand->type != astExpression::kVariableIdentifier) {
+                fatal("cannot be subscripted");
+            }
+            astVariable *variable = ((astVariableIdentifier*)operand)->variable;
+            if (!variable->isArray) {
+                fatal("`%s' cannot be subscripted", variable->name.c_str());
+            }
             expression->operand = operand;
             expression->index = parseExpression(kEndConditionBracket);
+            if (isConstant(expression->index)) {
+                expression->index = evaluate(expression->index);
+            }
             operand = expression;
         } else {
             break;
