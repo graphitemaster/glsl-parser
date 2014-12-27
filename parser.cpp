@@ -985,17 +985,40 @@ astFunction *parser::parseFunction(const topLevel &parse) {
                 }
             } else {
                 parameter->baseType = parseBuiltin();
+                if (parameter->baseType && parameter->baseType->builtin) {
+                    astBuiltin *builtin = (astBuiltin*)parameter->baseType;
+                    if (builtin->type == kKeyword_void && parameter->name.size())
+                        fatal("`void' parameter cannot be named");
+                }
             }
             next();
         }
 
-        if (!parameter->type)
+        if (!parameter->baseType)
             fatal("expected type");
         function->parameters.push_back(parameter);
         if (isOperator(kOperator_comma))
             next(); // skip ','
     }
     next(); // skip ')'
+
+    // If there is just one 'void' than silently drop it
+    if (function->parameters.size() == 1) {
+        if (function->parameters[0]->baseType->builtin) {
+            astBuiltin *builtin = (astBuiltin*)function->parameters[0]->baseType;
+            if (builtin->type == kKeyword_void)
+                function->parameters.pop_back();
+        }
+    }
+
+    // "It is a compile-time or link-time error to declare or define a function main with any other parameters or
+    //  return type."
+    if (function->name == "main") {
+        if (!function->parameters.empty())
+            fatal("`main' cannot have parameters");
+        if (!function->returnType->builtin || ((astBuiltin*)function->returnType)->type != kKeyword_void)
+            fatal("`main' must be declared to return void");
+    }
 
     if (isType(kType_scope_begin)) {
         function->isPrototype = false;
