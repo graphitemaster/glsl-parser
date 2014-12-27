@@ -264,7 +264,7 @@ struct astSwitchStatement : astSimpleStatement {
 
 struct astCaseLabelStatement : astSimpleStatement {
     astCaseLabelStatement();
-    astExpression *condition;
+    astConstantExpression *condition;
     bool isDefault;
 };
 

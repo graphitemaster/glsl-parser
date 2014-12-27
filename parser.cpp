@@ -1,3 +1,5 @@
+#include <algorithm> // std::find
+
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -728,14 +730,37 @@ astSwitchStatement *parser::parseSwitchStatement() {
         fatal("expected `{' after `)' in switch statement");
     next(); // skip '{'
 
+    std::vector<int> seenInts;
+    std::vector<unsigned int> seenUInts;
     bool hadDefault = false;
     while (!isType(kType_scope_end)) {
         astStatement *nextStatement = parseStatement();
         if (nextStatement->type == astStatement::kCaseLabel) {
-            if (((astCaseLabelStatement*)nextStatement)->isDefault) {
+            astCaseLabelStatement *caseLabel = (astCaseLabelStatement*)nextStatement;
+            if (!caseLabel->isDefault) {
+                if (!isConstant(caseLabel->condition)) {
+                    fatal("case label is not a valid constant expression");
+                }
+                astConstantExpression *value = evaluate(caseLabel->condition);
+                // "It is a compile-time error to have two case label constant-expression of equal value"
+                if (value->type == astExpression::kIntConstant) {
+                    const int val = IVAL(value);
+                    if (std::find(seenInts.begin(), seenInts.end(), val) != seenInts.end())
+                        fatal("duplicate case label");
+                    seenInts.push_back(val);
+                } else if (value->type == astExpression::kUIntConstant) {
+                    const unsigned int val = UVAL(value);
+                    if (std::find(seenUInts.begin(), seenUInts.end(), val) != seenUInts.end())
+                        fatal("duplicate case label");
+                    seenUInts.push_back(val);
+                } else {
+                    fatal("case label must be scalar `int' or `uint'");
+                }
+            } else {
                 // "It's a compile-time error to have more than one default"
-                if (hadDefault)
+                if (hadDefault) {
                     fatal("duplicate `default' case label");
+                }
                 hadDefault = true;
             }
         }
