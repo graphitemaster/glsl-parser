@@ -13,6 +13,8 @@ The straight-forward API allows you to parse GLSL into an abstact-syntax-tree in
         fprintf(stderr, "%s\n", parse.error());
     }
 
+A test-suite and GLSL source-generator is included to get you started.
+
 ### Possible uses
   * Verify a shader without running it
   * Find hard-to-find syntax or semantic errors with the superior diagnostics
