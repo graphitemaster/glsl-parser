@@ -227,7 +227,7 @@ void parser::fatal(const char *fmt, ...) {
     m_error = buffer;
     va_list va;
     va_start(va, fmt);
-    snprintf(buffer, sizeof(buffer), fmt, va);
+    vsnprintf(buffer, sizeof(buffer), fmt, va);
     va_end(va);
     m_error += buffer;
     longjmp(m_exit, 1);
