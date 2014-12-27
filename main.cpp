@@ -192,14 +192,23 @@ static void printArraySubscript(astArraySubscript *expression) {
 
 static void printFunctionCall(astFunctionCall *expression) {
     print("%s(", expression->name.c_str());
+    for (size_t i = 0; i < expression->parameters.size(); i++) {
+        printExpression(expression->parameters[i]);
+        if (i != expression->parameters.size() - 1)
+            print(", ");
+    }
+    print(")");
 }
 
 static void printConstructorCall(astConstructorCall *expression) {
     printType(expression->type);
     print("(");
-    for (size_t i = 0; i < expression->parameters.size(); i++)
+    for (size_t i = 0; i < expression->parameters.size(); i++) {
         printExpression(expression->parameters[i]);
-    print(");");
+        if (i != expression->parameters.size() - 1)
+            print(", ");
+    }
+    print(")");
 }
 
 static void printFunctionVariable(astFunctionVariable *variable) {
