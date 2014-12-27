@@ -528,7 +528,7 @@ int main(int argc, char **argv) {
     fclose(fp);
 
     parser p(source);
-    astTU *tu = p.parse();
+    astTU *tu = p.parse(astTU::kFragment);
     if (tu)
         printTU(tu);
     else

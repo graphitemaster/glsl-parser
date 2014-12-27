@@ -36,7 +36,7 @@ struct topLevel {
 struct parser {
     ~parser();
     parser(const std::string &source);
-    astTU *parse();
+    astTU *parse(int type);
 
     const char *error() const;
 protected:

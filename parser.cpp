@@ -250,11 +250,11 @@ bool parser::isBuiltin() const {
 #define TYPENAME(...)
 
 /// The parser entry point
-astTU *parser::parse() {
+astTU *parser::parse(int type) {
     if (setjmp(m_exit)) {
         return 0;
     } else {
-        m_ast = new astTU;
+        m_ast = new astTU(type);
         m_scopes.push_back(scope());
         for (;;) {
             m_lexer.read(m_token, true);
@@ -422,6 +422,37 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
         level = *continuation;
     for (size_t i = 0; i < items.size(); i++) {
         topLevel &next = items[i];
+        const int storage = level.storage != -1 ? level.storage : next.storage;
+        if (m_ast->type == astTU::kVertex && storage == kIn) {
+            // "It's a compile-time error to use any auxiliary or interpolation
+            //  qualifiers on a vertex shader input"
+            if (level.auxiliary != -1 || next.auxiliary != -1)
+                fatal("cannot use auxiliary storage qualifier on vertex shader input");
+            if (level.interpolation != -1 || next.interpolation != -1)
+                fatal("cannot use interpolation qualifier on vertex shader input");
+        }
+        if (m_ast->type == astTU::kFragment && storage == kOut) {
+            // "It's a compile-time error to use auxiliary storage qualifiers or
+            //  interpolation qualifiers on an output in a fragment shader."
+            if (level.auxiliary != -1 || next.auxiliary != -1)
+                fatal("cannot use auxiliary storage qualifier on fragment shader output");
+            if (level.interpolation != -1 || next.interpolation != -1)
+                fatal("cannot use interpolation qualifier on fragment shader output");
+        }
+        if (m_ast->type != astTU::kTessEvaluation && storage == kIn) {
+            // "Applying the patch qualifier to inputs can only be done in tessellation
+            //  evaluation shaders. It is a compile-time error to use patch with inputs
+            //  in any other stage."
+            if (level.auxiliary == kPatch || next.auxiliary == kPatch)
+                fatal("applying `patch' qualifier to input can only be done in tessellation evaluation shaders");
+        }
+        if (m_ast->type != astTU::kTessControl && storage == kOut) {
+            // "Applying patch to an output can only be done in a tessellation control
+            //  shader. It is a compile-time errot to use patch on outputs in any
+            //  other stage."
+            if (level.auxiliary == kPatch || next.auxiliary == kPatch)
+                fatal("applying `patch' qualifier to output can only be done in tessellation control shaders");
+        }
         if (next.storage != -1 && level.storage != -1)
             fatal("multiple storage qualifiers in declaration");
         if (next.auxiliary != -1 && level.auxiliary != -1)
@@ -436,6 +467,10 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
         level.precision = next.precision;
         level.memory |= next.memory;
     }
+
+    // "It's a compile-time error to use interpolation qualifiers with patch"
+    if (level.auxiliary == kPatch && level.interpolation != -1)
+        fatal("cannot use interpolation qualifier with auxiliary storage qualifier `patch'");
 
     if (!continuation) {
         if (isType(kType_identifier)) {
@@ -521,6 +556,21 @@ astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCon
         next();
         astExpression *rhs = parseUnary(end);
         next();
+
+        if (((astExpression*)expression)->type == astExpression::kAssign) {
+            if (lhs->type != astExpression::kVariableIdentifier)
+                fatal("not a valid lvalue");
+            astVariable *variable = ((astVariableIdentifier*)lhs)->variable;
+            if (variable->type == astVariable::kGlobal) {
+                astGlobalVariable *global = (astGlobalVariable*)variable;
+                // "It's a compile-time error to write to a variable declared as an input"
+                if (global->storage == kIn)
+                    fatal("cannot write to a variable declared as input");
+                // "It's a compile-time error to write to a const variable outside of its declaration."
+                if (global->storage == kConst)
+                    fatal("cannot write to a const variable outside of its declaration");
+            }
+        }
 
         int rhsPrecedence = m_token.precedence();
         // climb

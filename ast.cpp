@@ -21,6 +21,11 @@ const char *astStatement::name() const {
     return "(unknown)";
 }
 
+astTU::astTU(int type)
+    : type(type)
+{
+}
+
 astType::astType(bool builtin)
     : builtin(builtin)
 {

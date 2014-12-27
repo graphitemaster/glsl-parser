@@ -68,11 +68,22 @@ struct astLayoutQualifier;
 struct astStatement;
 
 struct astTU : astCollect<astTU> {
-    astTU() { }
+    astTU(int type);
+
+    enum {
+        kCompute,
+        kVertex,
+        kTessControl,
+        kTessEvaluation,
+        kGeometry,
+        kFragment
+    };
 
     std::vector<astFunction*> functions;
     std::vector<astType*> types;
     std::vector<astGlobalVariable*> globals;
+
+    int type;
 
 private:
     astTU(const astTU&);
