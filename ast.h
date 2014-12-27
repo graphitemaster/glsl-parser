@@ -102,10 +102,16 @@ enum {
 };
 
 struct astVariable : astNode<astVariable> {
-    astVariable();
+    enum {
+        kFunction,
+        kParameter,
+        kGlobal
+    };
+    astVariable(int type);
     std::string name;
-    astType *type;
+    astType *baseType;
     bool isArray;
+    int type;
     std::vector<astConstantExpression *> arraySizes;
 };
 
@@ -165,6 +171,7 @@ struct astGlobalVariable : astVariable {
     int memory;
     int precision;
     int interpolation;
+    astConstantExpression *initialValue;
     std::vector<astLayoutQualifier*> layoutQualifiers;
 };
 

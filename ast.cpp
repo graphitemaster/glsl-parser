@@ -32,20 +32,23 @@ astBuiltin::astBuiltin(int type)
 {
 }
 
-astVariable::astVariable()
-    : type(0)
+astVariable::astVariable(int type)
+    : baseType(0)
     , isArray(false)
+    , type(type)
 {
 }
 
 astFunctionVariable::astFunctionVariable()
-    : isConst(false)
+    : astVariable(astVariable::kFunction)
+    , isConst(false)
     , initialValue(0)
 {
 }
 
 astFunctionParameter::astFunctionParameter()
-    : storage(-1)
+    : astVariable(astVariable::kParameter)
+    , storage(-1)
     , auxiliary(-1)
     , memory(0)
     , precision(-1)
@@ -53,11 +56,13 @@ astFunctionParameter::astFunctionParameter()
 }
 
 astGlobalVariable::astGlobalVariable()
-    : storage(-1)
+    : astVariable(astVariable::kGlobal)
+    , storage(-1)
     , auxiliary(-1)
     , memory(0)
     , precision(-1)
     , interpolation(-1)
+    , initialValue(0)
 {
 }
 

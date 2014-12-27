@@ -15,6 +15,7 @@ struct topLevel {
         , precision(-1)
         , interpolation(-1)
         , type(0)
+        , initialValue(0)
         , isArray(false)
     {
     }
@@ -25,6 +26,7 @@ struct topLevel {
     int interpolation;
     std::vector<astLayoutQualifier*> layoutQualifiers;
     astType *type;
+    astConstantExpression *initialValue;
     std::vector<astConstantExpression*> arraySizes;
     bool isArray;
     std::string name;
@@ -67,9 +69,14 @@ protected:
     bool isEndCondition(endCondition condition) const;
     bool isBuiltin() const;
 
+    bool isConstantValue(astExpression *expression) const;
+    bool isConstant(astExpression *expression) const;
+
     void parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers);
 
     void fatal(const char *fmt, ...);
+
+    astConstantExpression *evaluate(astExpression *expression);
 
     // Type parsers
     astBuiltin *parseBuiltin();

@@ -21,13 +21,11 @@ def main():
                     errors = []
                     process = subprocess.Popen([parser, base + '.glsl'], stdout = subprocess.PIPE)
                     for line1, line2 in zip_longest(test, process.stdout):
-                        error = False
                         expect = line1.rstrip().lstrip() if line1 else '<nothing>'
                         got = line2.decode('utf-8').rstrip().lstrip() if line2 else '<nothing>'
                         if expect != got:
-                            error = True
                             errors.append("expected `%s' got `%s'" % (expect, got))
-                    print('%s: %s' % (name, 'failed' if error else 'passed'))
+                    print('%s: %s' % (name, 'failed' if len(errors) else 'passed'))
                     for error in errors:
                         print('    %s' % error)
 

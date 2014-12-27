@@ -44,6 +44,183 @@ bool parser::isEndCondition(endCondition condition) const {
         || ((condition & kEndConditionComma)        && isOperator(kOperator_comma));
 }
 
+// Constant expression evaluator
+bool parser::isConstant(astExpression *expression) const {
+    if (isConstantValue(expression)) {
+        return true;
+    } else if (expression->type == astExpression::kVariableIdentifier) {
+        astVariable *reference = ((astVariableIdentifier*)expression)->variable;
+        if (reference->type != astVariable::kGlobal)
+            return false;
+        astExpression *initialValue = ((astGlobalVariable*)reference)->initialValue;
+        if (!initialValue)
+            return false;
+        return isConstant(initialValue);
+    } else if (expression->type == astExpression::kUnaryMinus) {
+        return isConstant(((astUnaryExpression*)expression)->operand);
+    } else if (expression->type == astExpression::kUnaryPlus) {
+        return isConstant(((astUnaryExpression*)expression)->operand);
+    } else if (expression->type == astExpression::kOperation) {
+        astOperationExpression *operation = (astOperationExpression*)expression;
+        return isConstant(operation->operand1) && isConstant(operation->operand2);
+    }
+    return false;
+}
+
+bool parser::isConstantValue(astExpression *expression) const {
+    return expression->type == astExpression::kIntConstant ||
+           expression->type == astExpression::kUIntConstant ||
+           expression->type == astExpression::kFloatConstant ||
+           expression->type == astExpression::kDoubleConstant ||
+           expression->type == astExpression::kBoolConstant;
+}
+
+#define ICONST(X) ((astIntConstant*)(X))
+#define UCONST(X) ((astUIntConstant*)(X))
+#define FCONST(X) ((astFloatConstant*)(X))
+#define DCONST(X) ((astDoubleConstant*)(X))
+#define BCONST(X) ((astBoolConstant*)(X))
+
+#define ICONST_NEW(X) GC_NEW(astConstantExpression) astIntConstant(X)
+#define UCONST_NEW(X) GC_NEW(astConstantExpression) astUIntConstant(X)
+#define FCONST_NEW(X) GC_NEW(astConstantExpression) astFloatConstant(X)
+#define DCONST_NEW(X) GC_NEW(astConstantExpression) astDoubleConstant(X)
+#define BCONST_NEW(X) GC_NEW(astConstantExpression) astBoolConstant(X)
+
+#define IVAL(X) (ICONST(X)->value)
+#define UVAL(X) (UCONST(X)->value)
+#define FVAL(X) (FCONST(X)->value)
+#define DVAL(X) (DCONST(X)->value)
+#define BVAL(X) (BCONST(X)->value)
+
+astConstantExpression *parser::evaluate(astExpression *expression) {
+    if (isConstantValue(expression))
+        return expression;
+    else if (expression->type == astExpression::kVariableIdentifier) {
+        return evaluate(((astGlobalVariable*)((astVariableIdentifier*)expression)->variable)->initialValue);
+    } else if (expression->type == astExpression::kUnaryMinus) {
+        astExpression *operand = evaluate(((astUnaryExpression*)expression)->operand);
+        switch (operand->type) {
+            case astExpression::kIntConstant:    return ICONST_NEW(-IVAL(operand));
+            case astExpression::kFloatConstant:  return FCONST_NEW(-FVAL(operand));
+            case astExpression::kDoubleConstant: return DCONST_NEW(-DVAL(operand));
+            default:
+                fatal("invalid operation in constant expression");
+        }
+    } else if (expression->type == astExpression::kUnaryPlus) {
+        astExpression *operand = evaluate(((astUnaryExpression*)expression)->operand);
+        switch (operand->type) {
+            case astExpression::kIntConstant:
+            case astExpression::kUIntConstant:
+            case astExpression::kFloatConstant:
+            case astExpression::kDoubleConstant:
+                return operand;
+            default: fatal("invalid operation in constant expression");
+        }
+    } else if (expression->type == astExpression::kOperation) {
+        int operation = ((astOperationExpression*)expression)->operation;
+        astExpression *lhs = evaluate(((astBinaryExpression*)expression)->operand1);
+        astExpression *rhs = evaluate(((astBinaryExpression*)expression)->operand2);
+        switch (lhs->type) {
+        case astExpression::kIntConstant:
+            switch (operation) {
+            case kOperator_multiply:       return ICONST_NEW(IVAL(lhs) * IVAL(rhs));
+            case kOperator_divide:         return ICONST_NEW(IVAL(lhs) / IVAL(rhs));
+            case kOperator_modulus:        return ICONST_NEW(IVAL(lhs) % IVAL(rhs));
+            case kOperator_plus:           return ICONST_NEW(IVAL(lhs) + IVAL(rhs));
+            case kOperator_minus:          return ICONST_NEW(IVAL(lhs) - IVAL(rhs));
+            case kOperator_shift_left:     return ICONST_NEW(IVAL(lhs) << IVAL(rhs));
+            case kOperator_shift_right:    return ICONST_NEW(IVAL(lhs) >> IVAL(rhs));
+            case kOperator_less:           return BCONST_NEW(IVAL(lhs) < IVAL(rhs));
+            case kOperator_greater:        return BCONST_NEW(IVAL(lhs) > IVAL(rhs));
+            case kOperator_less_equal:     return BCONST_NEW(IVAL(lhs) <= IVAL(rhs));
+            case kOperator_greater_equal:  return BCONST_NEW(IVAL(lhs) >= IVAL(rhs));
+            case kOperator_equal:          return BCONST_NEW(IVAL(lhs) == IVAL(rhs));
+            case kOperator_not_equal:      return BCONST_NEW(IVAL(lhs) != IVAL(rhs));
+            case kOperator_bit_and:        return ICONST_NEW(IVAL(lhs) & IVAL(rhs));
+            case kOperator_bit_xor:        return ICONST_NEW(IVAL(lhs) ^ IVAL(rhs));
+            case kOperator_logical_and:    return BCONST_NEW(IVAL(lhs) && IVAL(rhs));
+            case kOperator_logical_xor:    return BCONST_NEW(!IVAL(lhs) != !IVAL(rhs));
+            case kOperator_logical_or:     return BCONST_NEW(IVAL(lhs) || IVAL(rhs));
+            default: fatal("invalid operation in constant expression");
+            }
+            break;
+        case astExpression::kUIntConstant:
+            switch (operation) {
+            case kOperator_multiply:       return UCONST_NEW(UVAL(lhs) * UVAL(rhs));
+            case kOperator_divide:         return UCONST_NEW(UVAL(lhs) / UVAL(rhs));
+            case kOperator_modulus:        return UCONST_NEW(UVAL(lhs) % UVAL(rhs));
+            case kOperator_plus:           return UCONST_NEW(UVAL(lhs) + UVAL(rhs));
+            case kOperator_minus:          return UCONST_NEW(UVAL(lhs) - UVAL(rhs));
+            case kOperator_shift_left:     return UCONST_NEW(UVAL(lhs) << UVAL(rhs));
+            case kOperator_shift_right:    return UCONST_NEW(UVAL(lhs) >> UVAL(rhs));
+            case kOperator_less:           return BCONST_NEW(UVAL(lhs) < UVAL(rhs));
+            case kOperator_greater:        return BCONST_NEW(UVAL(lhs) > UVAL(rhs));
+            case kOperator_less_equal:     return BCONST_NEW(UVAL(lhs) <= UVAL(rhs));
+            case kOperator_greater_equal:  return BCONST_NEW(UVAL(lhs) >= UVAL(rhs));
+            case kOperator_equal:          return BCONST_NEW(UVAL(lhs) == UVAL(rhs));
+            case kOperator_not_equal:      return BCONST_NEW(UVAL(lhs) != UVAL(rhs));
+            case kOperator_bit_and:        return UCONST_NEW(UVAL(lhs) & UVAL(rhs));
+            case kOperator_bit_xor:        return UCONST_NEW(UVAL(lhs) ^ UVAL(rhs));
+            case kOperator_logical_and:    return BCONST_NEW(UVAL(lhs) && UVAL(rhs));
+            case kOperator_logical_xor:    return BCONST_NEW(!UVAL(lhs) != !UVAL(rhs));
+            case kOperator_logical_or:     return BCONST_NEW(UVAL(lhs) || UVAL(rhs));
+            default: fatal("invalid operation in constant expression");
+            }
+            break;
+        case astExpression::kFloatConstant:
+            switch (operation) {
+            case kOperator_multiply:       return FCONST_NEW(FVAL(lhs) * FVAL(rhs));
+            case kOperator_divide:         return FCONST_NEW(FVAL(lhs) / FVAL(rhs));
+            case kOperator_plus:           return FCONST_NEW(FVAL(lhs) + FVAL(rhs));
+            case kOperator_minus:          return FCONST_NEW(FVAL(lhs) - FVAL(rhs));
+            case kOperator_less:           return BCONST_NEW(FVAL(lhs) < FVAL(rhs));
+            case kOperator_greater:        return BCONST_NEW(FVAL(lhs) > FVAL(rhs));
+            case kOperator_less_equal:     return BCONST_NEW(FVAL(lhs) <= FVAL(rhs));
+            case kOperator_greater_equal:  return BCONST_NEW(FVAL(lhs) >= FVAL(rhs));
+            case kOperator_equal:          return BCONST_NEW(FVAL(lhs) == FVAL(rhs));
+            case kOperator_not_equal:      return BCONST_NEW(FVAL(lhs) != FVAL(rhs));
+            case kOperator_logical_and:    return BCONST_NEW(FVAL(lhs) && FVAL(rhs));
+            case kOperator_logical_xor:    return BCONST_NEW(!FVAL(lhs) != !FVAL(rhs));
+            case kOperator_logical_or:     return BCONST_NEW(FVAL(lhs) || FVAL(rhs));
+            default: fatal("invalid operation in constant expression");
+            }
+            break;
+        case astExpression::kDoubleConstant:
+            switch (operation) {
+            case kOperator_multiply:       return DCONST_NEW(DVAL(lhs) * DVAL(rhs));
+            case kOperator_divide:         return DCONST_NEW(DVAL(lhs) / DVAL(rhs));
+            case kOperator_plus:           return DCONST_NEW(DVAL(lhs) + DVAL(rhs));
+            case kOperator_minus:          return DCONST_NEW(DVAL(lhs) - DVAL(rhs));
+            case kOperator_less:           return BCONST_NEW(DVAL(lhs) < DVAL(rhs));
+            case kOperator_greater:        return BCONST_NEW(DVAL(lhs) > DVAL(rhs));
+            case kOperator_less_equal:     return BCONST_NEW(DVAL(lhs) <= DVAL(rhs));
+            case kOperator_greater_equal:  return BCONST_NEW(DVAL(lhs) >= DVAL(rhs));
+            case kOperator_equal:          return BCONST_NEW(DVAL(lhs) == DVAL(rhs));
+            case kOperator_not_equal:      return BCONST_NEW(DVAL(lhs) != DVAL(rhs));
+            case kOperator_logical_and:    return BCONST_NEW(DVAL(lhs) && DVAL(rhs));
+            case kOperator_logical_xor:    return BCONST_NEW(!DVAL(lhs) != !DVAL(rhs));
+            case kOperator_logical_or:     return BCONST_NEW(DVAL(lhs) || DVAL(rhs));
+            default: fatal("invalid operation in constant expression");
+            }
+            break;
+        case astExpression::kBoolConstant:
+            switch (operation) {
+            case kOperator_equal:          return BCONST_NEW(BVAL(lhs) == BVAL(rhs));
+            case kOperator_not_equal:      return BCONST_NEW(BVAL(lhs) != BVAL(rhs));
+            case kOperator_logical_and:    return BCONST_NEW(BVAL(lhs) && BVAL(rhs));
+            case kOperator_logical_xor:    return BCONST_NEW(!BVAL(lhs) != !BVAL(rhs));
+            case kOperator_logical_or:     return BCONST_NEW(BVAL(lhs) || BVAL(rhs));
+            default: fatal("invalid operation in constant expression");
+            }
+            break;
+        }
+    } else {
+        return evaluate(expression);
+    }
+    return 0;
+}
+
 void parser::fatal(const char *fmt, ...) {
     char buffer[1024];
     snprintf(buffer, sizeof(buffer), "<string>:%zu:%zu: error: ", m_lexer.line(), m_lexer.column());
@@ -95,8 +272,10 @@ astTU *parser::parse() {
                     global->memory = parse.memory;
                     global->precision = parse.precision;
                     global->interpolation = parse.interpolation;
-                    global->type = parse.type;
+                    global->baseType = parse.type;
                     global->name = parse.name;
+                    if (parse.initialValue)
+                        global->initialValue = evaluate(parse.initialValue);
                     global->isArray = parse.isArray;
                     global->arraySizes = parse.arraySizes;
                     m_ast->globals.push_back(global);
@@ -289,6 +468,18 @@ topLevel parser::parseTopLevelItem(topLevel *continuation) {
         level.isArray = true;
         level.arraySizes.push_back(parseArraySize());
         next(); // skip ']'
+    }
+
+    if (level.storage == kConst) {
+        // Can have a constant expression assignment
+        if (isOperator(kOperator_assign)) {
+            next(); // skip '='
+            level.initialValue = parseExpression(kEndConditionSemicolon);
+            if (!isConstant(level.initialValue))
+                fatal("not a valid constant expression");
+        } else {
+            fatal("const-qualified variable declared but not initialized");
+        }
     }
 
     return level;
@@ -635,7 +826,7 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
 
         astFunctionVariable *variable = GC_NEW(astVariable) astFunctionVariable();
         variable->isConst = isConst;
-        variable->type = type;
+        variable->baseType = type;
         variable->name = name;
         variable->initialValue = initialValue;
         statement->variables.push_back(variable);
@@ -737,7 +928,7 @@ astFunction *parser::parseFunction(const topLevel &parse) {
                     //next(); // ']'
                 }
             } else {
-                parameter->type = parseBuiltin();
+                parameter->baseType = parseBuiltin();
             }
             next();
         }

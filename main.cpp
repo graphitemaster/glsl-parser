@@ -71,7 +71,7 @@ static void printVariable(astVariable *variable, bool nameOnly = false) {
         return;
     }
 
-    printType(variable->type);
+    printType(variable->baseType);
     print(" %s", variable->name.c_str());
 
     if (nameOnly)
@@ -165,6 +165,12 @@ static void printGlobalVariable(astGlobalVariable *variable) {
     }
 
     printVariable((astVariable*)variable);
+
+    if (variable->initialValue) {
+        print(" = ");
+        printExpression(variable->initialValue);
+    }
+
     print(";\n");
 }
 
@@ -455,7 +461,7 @@ static void printFunctionParameter(astFunctionParameter *parameter) {
     printAuxiliary(parameter->auxiliary);
     printMemory(parameter->memory);
     printPrecision(parameter->precision);
-    printType(parameter->type);
+    printType(parameter->baseType);
     if (parameter->name.size())
         print(" %s", parameter->name.c_str());
     if (parameter->isArray)
