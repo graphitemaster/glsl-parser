@@ -727,10 +727,22 @@ astSwitchStatement *parser::parseSwitchStatement() {
     if (!isType(kType_scope_begin))
         fatal("expected `{' after `)' in switch statement");
     next(); // skip '{'
+
+    bool hadDefault = false;
     while (!isType(kType_scope_end)) {
-        statement->statements.push_back(parseStatement());
+        astStatement *nextStatement = parseStatement();
+        if (nextStatement->type == astStatement::kCaseLabel) {
+            if (((astCaseLabelStatement*)nextStatement)->isDefault) {
+                // "It's a compile-time error to have more than one default"
+                if (hadDefault)
+                    fatal("duplicate 'default' case label");
+                hadDefault = true;
+            }
+        }
+        statement->statements.push_back(nextStatement);
         next();
     }
+
     // TODO: verify scope of where enum's are found
     return statement;
 }
