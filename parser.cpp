@@ -260,6 +260,11 @@ stage parser::parseGlobalItem(stage *continuation) {
         } else {
             parse.type = parseBuiltin();
             next();
+            while (isOperator(kOperator_bracket_begin)) {
+                parse.isArray = true;
+                parse.arraySizes.insert(parse.arraySizes.begin(), parseArraySize());
+                next(); // skip ']' (parseArraySize skips '[')
+            }
         }
     }
 

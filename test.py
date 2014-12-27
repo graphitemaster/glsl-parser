@@ -1,5 +1,6 @@
 import os
 import subprocess
+from itertools import zip_longest
 
 directory = './tests'
 parser = './glsl-parser'
@@ -11,24 +12,25 @@ def main():
                 name = os.path.splitext(file)[0]
                 base = root + name
                 if not os.path.isfile(base + '.glsl'):
-                    print('failed to find source file for `%s\'' % (name))
+                    print('failed to find source file for `%s\'' % name)
                     continue
                 if not os.path.isfile(base + '.test') and not os.path.islink(base + '.test'):
-                    print('failed to find test file for `%s\'' % (name))
+                    print('failed to find test file for `%s\'' % name)
                     continue
                 with open(base + '.test') as test:
-                    error = False
+                    errors = []
                     process = subprocess.Popen([parser, base + '.glsl'], stdout = subprocess.PIPE)
-                    if len(test.readlines()) == len(process.stdout.readlines()):
-                        for line1, line2 in zip(test, process.stdout):
-                            expect = line1.rstrip().lstrip()
-                            got = line2.decode('utf-8').rstrip().lstrip()
-                            if expect != got:
-                                error = True
-                                print("%s: expected `%s' got `%s'" % (name, expect, got))
-                    else:
-                        error = True
+                    for line1, line2 in zip_longest(test, process.stdout):
+                        error = False
+                        expect = line1.rstrip().lstrip() if line1 else '<nothing>'
+                        got = line2.decode('utf-8').rstrip().lstrip() if line2 else '<nothing>'
+                        if expect != got:
+                            error = True
+                            errors.append("expected `%s' got `%s'" % (expect, got))
                     print('%s: %s' % (name, 'failed' if error else 'passed'))
+                    for error in errors:
+                        print('    %s' % error)
+
 
 if __name__ == "__main__":
     main()
