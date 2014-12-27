@@ -293,7 +293,7 @@ astTU *parser::parse(int type) {
             } else if (isType(kType_whitespace)) {
                 continue; // whitespace tokens will be used later for the preprocessor
             } else {
-                fatal("syntax error (top level)");
+                fatal("syntax error");
             }
         }
         return m_ast;
@@ -737,7 +737,7 @@ astIfStatement *parser::parseIfStatement() {
     astIfStatement *statement = GC_NEW(astStatement) astIfStatement();
     next(); // skip 'if'
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' after `if' in if statement");
+        fatal("expected `(' after `if'");
     }
     next(); // skip '('
     statement->condition = parseExpression(kEndConditionParanthesis);
@@ -756,13 +756,13 @@ astSwitchStatement *parser::parseSwitchStatement() {
     astSwitchStatement *statement = GC_NEW(astStatement) astSwitchStatement();
     next(); // skip 'switch'
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' after `switch' in switch statement");
+        fatal("expected `(' after `switch'");
     }
     next(); // skip '('
     statement->expression = parseExpression(kEndConditionParanthesis);
     next(); // skip next
     if (!isType(kType_scope_begin)) {
-        fatal("expected `{' after `)' in switch statement");
+        fatal("expected `{' after `)'");
     }
     next(); // skip '{'
 
@@ -782,12 +782,12 @@ astSwitchStatement *parser::parseSwitchStatement() {
                 if (value->type == astExpression::kIntConstant) {
                     const int val = IVAL(value);
                     if (std::find(seenInts.begin(), seenInts.end(), val) != seenInts.end())
-                        fatal("duplicate case label");
+                        fatal("duplicate case label `%d'", val);
                     seenInts.push_back(val);
                 } else if (value->type == astExpression::kUIntConstant) {
                     const unsigned int val = UVAL(value);
                     if (std::find(seenUInts.begin(), seenUInts.end(), val) != seenUInts.end())
-                        fatal("duplicate case label");
+                        fatal("duplicate case label `%u'", val);
                     seenUInts.push_back(val);
                 } else {
                     fatal("case label must be scalar `int' or `uint'");
@@ -827,7 +827,7 @@ astForStatement *parser::parseForStatement() {
     astForStatement *statement = GC_NEW(astStatement) astForStatement();
     next(); // skip 'for'
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' after `for' in for statement");
+        fatal("expected `(' after `for'");
     }
     next(); // skip '('
     if (!isType(kType_semicolon)) {
@@ -879,11 +879,11 @@ astDoStatement *parser::parseDoStatement() {
     statement->body = parseStatement();
     next();
     if (!isKeyword(kKeyword_while)) {
-        fatal("expected `while' after `do' in do-while loop");
+        fatal("expected `while' after `do'");
     }
     next(); // skip 'while'
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' after `while' in do-while loop");
+        fatal("expected `(' after `while'");
     }
     next(); // skip '('
     statement->condition = parseExpression(kEndConditionParanthesis);
@@ -895,7 +895,7 @@ astWhileStatement *parser::parseWhileStatement() {
     astWhileStatement *statement = GC_NEW(astStatement) astWhileStatement();
     next(); // skip 'while'
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' after `while' in while-loop");
+        fatal("expected `(' after `while'");
     }
     next(); // skip '('
     statement->condition = parseDeclarationOrExpressionStatement(kEndConditionParanthesis);
@@ -982,7 +982,7 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
                 next(); // skip ']'
             }
         } else {
-            fatal("syntax error (declaration)");
+            fatal("syntax error");
         }
     }
 
@@ -1163,7 +1163,7 @@ astConstructorCall *parser::parseConstructorCall() {
     expression->type = parseBuiltin();
     next();
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' in constructor call");
+        fatal("expected `(' for constructor call");
     }
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
@@ -1181,7 +1181,7 @@ astFunctionCall *parser::parseFunctionCall() {
     expression->name = m_token.m_identifier;
     next(); // skip identifier
     if (!isOperator(kOperator_paranthesis_begin)) {
-        fatal("expected `(' in function call");
+        fatal("expected `(' for function call");
     }
     next(); // skip '('
     while (!isOperator(kOperator_paranthesis_end)) {
