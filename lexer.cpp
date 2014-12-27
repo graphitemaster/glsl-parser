@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 
 #include "lexer.h"
 
@@ -162,10 +163,20 @@ void lexer::read(token &out) {
             out.asDouble = strtof(numeric.c_str(), 0);
         } else if (isUnsigned) {
             out.m_type = kType_constant_uint;
-            out.asUnsigned = strtoul(numeric.c_str(), 0, base);
+            unsigned long long value = strtoull(numeric.c_str(), 0, base);
+            if (value <= UINT_MAX) {
+                out.asUnsigned = (unsigned int)value;
+            } else {
+                m_error = "literal needs more than 32-bits";
+            }
         } else {
             out.m_type = kType_constant_int;
-            out.asInt = strtol(numeric.c_str(), 0, base);
+            long long value = strtoll(numeric.c_str(), 0, base);
+            if (value <= INT_MAX) {
+                out.asInt = (int)value;
+            } else {
+                m_error = "literal needs more than 32-bits";
+            }
         }
     } else if (isChar(at()) || at() == '_') {
         // Identifiers

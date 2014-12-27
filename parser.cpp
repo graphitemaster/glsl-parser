@@ -1185,6 +1185,9 @@ void parser::next() {
     if (isType(kType_eof)) {
         fatal("premature end of file");
     }
+    const char *error = m_lexer.error();
+    if (error)
+        fatal(error);
 }
 
 astBinaryExpression *parser::createExpression() {
