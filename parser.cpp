@@ -14,7 +14,9 @@ parser::parser(const std::string &source)
 }
 
 parser::~parser() {
-    // TODO: reference count m_ast
+    delete m_ast;
+    for (size_t i = 0; i < m_memory.size(); i++)
+        m_memory[i].destroy();
 }
 
 #define IS_TYPE(TOKEN, TYPE) \
@@ -24,7 +26,7 @@ parser::~parser() {
 #define IS_OPERATOR(TOKEN, OPERATOR) \
     (IS_TYPE((TOKEN), kType_operator) && (TOKEN).m_operator == (OPERATOR))
 
-#define GC_NEW(X) new(gc<X>())
+#define GC_NEW(X) new(&m_memory)
 
 bool parser::isType(int type) const {
     return IS_TYPE(m_token, type);

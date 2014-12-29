@@ -47,6 +47,8 @@ struct parser {
     const char *error() const;
 
 protected:
+    void cleanup();
+
     enum {
         kEndConditionSemicolon = 1 << 0,
         kEndConditionParanthesis = 1 << 1,
@@ -127,23 +129,15 @@ protected:
 private:
     typedef std::vector<astVariable *> scope;
 
-    template <typename T>
-    astCollect<T> *gc();
-
     astTU *m_ast;
     lexer m_lexer;
     token m_token;
     std::vector<scope> m_scopes;
     std::vector<astBuiltin*> m_builtins;
-
-    //jmp_buf m_exit;
     std::string m_error;
-};
 
-template <typename T>
-inline astCollect<T> *parser::gc() {
-    return (astCollect<T>*)m_ast;
-}
+    std::vector<astMemory> m_memory; // Memory of AST held here
+};
 
 }
 

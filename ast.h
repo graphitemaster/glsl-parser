@@ -8,57 +8,37 @@
 
 namespace glsl {
 
+// Type-erasure
+template <typename T>
+static inline void astDestroy(void *self) {
+    ((T*)self)->~T();
+    free(self);
+}
+
+struct astMemory {
+    astMemory() : data(0), dtor(0) { }
+    template <typename T>
+    astMemory(T *data) : data((void*)data), dtor(&astDestroy<T>) { }
+    void *data;
+    void (*dtor)(void*);
+    void destroy() {
+        dtor(data);
+    }
+};
+
 // Nodes are to inherit from astNode or astCollector
 template <typename T>
-struct astCollect;
-
-template <typename T>
 struct astNode {
-    ~astNode() {
-        ((T*)this)->~T();
+    void *operator new(size_t size, std::vector<astMemory> *collector) {
+        void *data = malloc(size);
+        collector->push_back(astMemory((T*)data));
+        return data;
     }
-
-    void *operator new(size_t size, astCollect<T> *collector);
-    void operator delete(void *ptr, astCollect<T> *collector);
-
 private:
     void *operator new(size_t);
     void operator delete(void *);
 };
 
-template <typename T>
-inline void *astNode<T>::operator new(size_t size, astCollect<T> *collector) {
-    void *data = malloc(size);
-    collector->m_nodes.push_back((astNode<T>*)data);
-    return data;
-}
-
-template <typename T>
-inline void astNode<T>::operator delete(void *data, astCollect<T> *collector) {
-    typename std::vector<astNode<T>*>::iterator it = std::find(collector->m_nodes.begin(),
-                                                               collector->m_nodes.end(),
-                                                               data);
-    if (it != collector->m_nodes.end())
-        collector->m_nodes.erase(it);
-    free(data);
-}
-
-template <typename T>
-struct astCollect {
-    ~astCollect();
-    std::vector<astNode<T>*> m_nodes;
-    friend struct astNode<T>;
-};
-
-template <typename T>
-inline astCollect<T>::~astCollect() {
-    for (size_t i = 0; i < m_nodes.size(); i++) {
-        if (m_nodes[i])
-            m_nodes[i]->~astNode<T>();
-        free(m_nodes[i]);
-        m_nodes.pop_back();
-    }
-}
 
 struct astFunction;
 struct astType;
@@ -67,7 +47,7 @@ struct astExpression;
 struct astLayoutQualifier;
 struct astStatement;
 
-struct astTU : astCollect<astTU> {
+struct astTU {
     astTU(int type);
 
     enum {
