@@ -40,6 +40,7 @@ astBuiltin::astBuiltin(int type)
 astVariable::astVariable(int type)
     : baseType(0)
     , isArray(false)
+    , isPrecise(false)
     , type(type)
 {
 }
@@ -68,6 +69,7 @@ astGlobalVariable::astGlobalVariable()
     , precision(-1)
     , interpolation(-1)
     , initialValue(0)
+    , isInvariant(false)
 {
 }
 

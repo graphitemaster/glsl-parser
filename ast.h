@@ -102,6 +102,7 @@ struct astVariable : astNode<astVariable> {
     std::string name;
     astType *baseType;
     bool isArray;
+    bool isPrecise;
     int type;
     std::vector<astConstantExpression *> arraySizes;
 };
@@ -162,6 +163,7 @@ struct astGlobalVariable : astVariable {
     int memory;
     int precision;
     int interpolation;
+    bool isInvariant;
     astConstantExpression *initialValue;
     std::vector<astLayoutQualifier*> layoutQualifiers;
 };

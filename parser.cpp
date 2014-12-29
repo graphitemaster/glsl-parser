@@ -292,6 +292,8 @@ CHECK_RETURN astTU *parser::parse(int type) {
                 global->interpolation = parse.interpolation;
                 global->baseType = parse.type;
                 global->name = parse.name;
+                global->isInvariant = parse.isInvariant;
+                global->isPrecise = parse.isPrecise;
                 if (parse.initialValue) {
                     if (!(global->initialValue = evaluate(parse.initialValue)))
                         return 0;
@@ -391,19 +393,19 @@ CHECK_RETURN bool parser::parsePrecision(topLevel &current) {
     return true;
 }
 
-CHECK_RETURN bool parser::parseInvariant(topLevel &) {
+CHECK_RETURN bool parser::parseInvariant(topLevel &current) {
     // invariant
     if (isKeyword(kKeyword_invariant)) {
-        // TODO:
+        current.isInvariant = true;
         if (!next()) return false; // skip 'invariant'
     }
     return true;
 }
 
-CHECK_RETURN bool parser::parsePrecise(topLevel &) {
+CHECK_RETURN bool parser::parsePrecise(topLevel &current) {
     // precise
     if (isKeyword(kKeyword_precise)) {
-        // TODO:
+        current.isPrecise = true;
         if (!next()) return false; // skip 'precise'
     }
     return true;

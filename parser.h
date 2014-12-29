@@ -22,6 +22,8 @@ struct topLevel {
         , interpolation(-1)
         , type(0)
         , initialValue(0)
+        , isInvariant(false)
+        , isPrecise(false)
         , isArray(false)
     {
     }
@@ -34,6 +36,8 @@ struct topLevel {
     astType *type;
     astConstantExpression *initialValue;
     std::vector<astConstantExpression*> arraySizes;
+    bool isInvariant;
+    bool isPrecise;
     bool isArray;
     std::string name;
 };

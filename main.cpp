@@ -66,6 +66,9 @@ static void printArraySize(const std::vector<astConstantExpression*> &arraySizes
 }
 
 static void printVariable(astVariable *variable, bool nameOnly = false) {
+    if (variable->isPrecise)
+        print("precise ");
+
     if (nameOnly) {
         print("%s", variable->name.c_str());
         return;
@@ -151,6 +154,9 @@ static void printGlobalVariable(astGlobalVariable *variable) {
     printAuxiliary(variable->auxiliary);
     printMemory(variable->memory);
     printPrecision(variable->precision);
+
+    if (variable->isInvariant)
+        print("invariant ");
 
     switch (variable->interpolation) {
     case kSmooth:
