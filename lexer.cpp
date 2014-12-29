@@ -101,8 +101,9 @@ void lexer::read(token &out) {
             if (ch1 && (ch1 == 'x' || ch1 == 'X')) {
                 isHexish = true;
                 m_location.advanceColumn(2);
+            } else {
+                isOctalish = true;
             }
-            // TODO: Octal
         }
 
         std::string numeric = readNumeric(isOctalish, isHexish);

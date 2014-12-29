@@ -11,4 +11,5 @@ void test() {
     uint test_hex_no_suffix_mixed = 255;
     uint test_hex_suffix_mixed = 255u;
     int test_negative = -1;
+    uint test_octal = 511;
 }
