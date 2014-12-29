@@ -1,11 +1,17 @@
 #ifndef PARSE_HDR
 #define PARSE_HDR
-#include <setjmp.h>
-
 #include "lexer.h"
 #include "ast.h"
 
 namespace glsl {
+
+#if __GNUC__ >= 4
+#   define CHECK_RETURN __attribute__((warn_unused_result))
+#elif _MSC_VER >= 1700
+#   define CHECK_RETURN _Check_return_
+#else
+#   define CHECK_RETURN
+#endif
 
 struct topLevel {
     topLevel()
@@ -36,9 +42,10 @@ struct topLevel {
 struct parser {
     ~parser();
     parser(const std::string &source);
-    astTU *parse(int type);
+    CHECK_RETURN astTU *parse(int type);
 
     const char *error() const;
+
 protected:
     enum {
         kEndConditionSemicolon = 1 << 0,
@@ -50,66 +57,67 @@ protected:
 
     typedef int endCondition;
 
-    void next();
+    CHECK_RETURN bool next();
 
-    void parseStorage(topLevel &current); // const, in, out, attribute, uniform, varying, buffer, shared
-    void parseAuxiliary(topLevel &current); // centroid, sample, patch
-    void parseInterpolation(topLevel &current); // smooth, flat, noperspective
-    void parsePrecision(topLevel &current); // highp, mediump, lowp
-    void parseInvariant(topLevel &current); // invariant
-    void parsePrecise(topLevel &current); // precise
-    void parseMemory(topLevel &current); // coherent, volatile, restrict, readonly, writeonly
+    CHECK_RETURN bool parseStorage(topLevel &current); // const, in, out, attribute, uniform, varying, buffer, shared
+    CHECK_RETURN bool parseAuxiliary(topLevel &current); // centroid, sample, patch
+    CHECK_RETURN bool parseInterpolation(topLevel &current); // smooth, flat, noperspective
+    CHECK_RETURN bool parsePrecision(topLevel &current); // highp, mediump, lowp
+    CHECK_RETURN bool parseInvariant(topLevel &current); // invariant
+    CHECK_RETURN bool parsePrecise(topLevel &current); // precise
+    CHECK_RETURN bool parseMemory(topLevel &current); // coherent, volatile, restrict, readonly, writeonly
 
-    topLevel parseTopLevelItem(topLevel *continuation = 0);
-    std::vector<topLevel> parseTopLevel();
+    CHECK_RETURN bool parseTopLevelItem(topLevel &level, topLevel *continuation = 0);
+    CHECK_RETURN bool parseTopLevel(std::vector<topLevel> &top);
 
-    bool isType(int type) const;
-    bool isKeyword(int keyword) const;
-    bool isOperator(int oper) const;
-    bool isEndCondition(endCondition condition) const;
-    bool isBuiltin() const;
+    CHECK_RETURN bool isType(int type) const;
+    CHECK_RETURN bool isKeyword(int keyword) const;
+    CHECK_RETURN bool isOperator(int oper) const;
+    CHECK_RETURN bool isEndCondition(endCondition condition) const;
+    CHECK_RETURN bool isBuiltin() const;
 
-    bool isConstantValue(astExpression *expression) const;
-    bool isConstant(astExpression *expression) const;
+    CHECK_RETURN bool isConstantValue(astExpression *expression) const;
+    CHECK_RETURN bool isConstant(astExpression *expression) const;
 
     void parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers);
 
     void fatal(const char *fmt, ...);
 
-    astConstantExpression *evaluate(astExpression *expression);
+    CHECK_RETURN astConstantExpression *evaluate(astExpression *expression);
 
     // Type parsers
     astBuiltin *parseBuiltin();
     astStruct *parseStruct();
-    astFunction *parseFunction(const topLevel &parse);
+
+    CHECK_RETURN astFunction *parseFunction(const topLevel &parse);
 
     // Call parsers
-    astConstructorCall *parseConstructorCall();
-    astFunctionCall *parseFunctionCall();
+    CHECK_RETURN astConstructorCall *parseConstructorCall();
+    CHECK_RETURN astFunctionCall *parseFunctionCall();
 
     // Expression parsers
-    astExpression *parseExpression(endCondition end);
-    astExpression *parseUnary(endCondition end);
-    astExpression *parseBinary(int lhsPrecedence, astExpression *lhs, endCondition condition);
-    astExpression *parseUnaryPrefix(endCondition end);
-    astConstantExpression *parseArraySize();
+    CHECK_RETURN astExpression *parseExpression(endCondition end);
+    CHECK_RETURN astExpression *parseUnary(endCondition end);
+    CHECK_RETURN astExpression *parseBinary(int lhsPrecedence, astExpression *lhs, endCondition condition);
+    CHECK_RETURN astExpression *parseUnaryPrefix(endCondition end);
+    CHECK_RETURN astConstantExpression *parseArraySize();
 
     // Statement parsers
-    astStatement *parseStatement();
-    astSwitchStatement *parseSwitchStatement();
-    astCaseLabelStatement *parseCaseLabelStatement();
-    astForStatement *parseForStatement();
-    astCompoundStatement *parseCompoundStatement();
-    astIfStatement *parseIfStatement();
-    astSimpleStatement *parseDeclarationOrExpressionStatement(endCondition condition);
-    astDeclarationStatement *parseDeclarationStatement(endCondition condition);
-    astExpressionStatement *parseExpressionStatement(endCondition condition);
-    astContinueStatement *parseContinueStatement();
-    astBreakStatement *parseBreakStatement();
-    astDiscardStatement *parseDiscardStatement();
-    astReturnStatement *parseReturnStatement();
-    astDoStatement *parseDoStatement();
-    astWhileStatement *parseWhileStatement();
+    CHECK_RETURN astStatement *parseStatement();
+    CHECK_RETURN astSwitchStatement *parseSwitchStatement();
+    CHECK_RETURN astCaseLabelStatement *parseCaseLabelStatement();
+    CHECK_RETURN astForStatement *parseForStatement();
+    CHECK_RETURN astCompoundStatement *parseCompoundStatement();
+    CHECK_RETURN astIfStatement *parseIfStatement();
+    CHECK_RETURN astSimpleStatement *parseDeclarationOrExpressionStatement(endCondition condition);
+    CHECK_RETURN astDeclarationStatement *parseDeclarationStatement(endCondition condition);
+    CHECK_RETURN astExpressionStatement *parseExpressionStatement(endCondition condition);
+    CHECK_RETURN astContinueStatement *parseContinueStatement();
+    CHECK_RETURN astBreakStatement *parseBreakStatement();
+    CHECK_RETURN astDiscardStatement *parseDiscardStatement();
+    CHECK_RETURN astReturnStatement *parseReturnStatement();
+    CHECK_RETURN astDoStatement *parseDoStatement();
+    CHECK_RETURN astWhileStatement *parseWhileStatement();
 
     astBinaryExpression *createExpression();
 
@@ -128,7 +136,7 @@ private:
     std::vector<scope> m_scopes;
     std::vector<astBuiltin*> m_builtins;
 
-    jmp_buf m_exit;
+    //jmp_buf m_exit;
     std::string m_error;
 };
 
