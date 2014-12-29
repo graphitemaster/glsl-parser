@@ -105,25 +105,25 @@ astConstantExpression *parser::evaluate(astExpression *expression) {
         astExpression *operand = evaluate(((astUnaryExpression*)expression)->operand);
         if (!operand) return 0;
         switch (operand->type) {
-            case astExpression::kIntConstant:    return ICONST_NEW(-IVAL(operand));
-            case astExpression::kFloatConstant:  return FCONST_NEW(-FVAL(operand));
-            case astExpression::kDoubleConstant: return DCONST_NEW(-DVAL(operand));
-            default:
-                fatal("invalid operation in constant expression");
-                return 0;
+        case astExpression::kIntConstant:    return ICONST_NEW(-IVAL(operand));
+        case astExpression::kFloatConstant:  return FCONST_NEW(-FVAL(operand));
+        case astExpression::kDoubleConstant: return DCONST_NEW(-DVAL(operand));
+        default:
+            fatal("invalid operation in constant expression");
+            return 0;
         }
     } else if (expression->type == astExpression::kUnaryPlus) {
         astExpression *operand = evaluate(((astUnaryExpression*)expression)->operand);
         if (!operand) return 0;
         switch (operand->type) {
-            case astExpression::kIntConstant:
-            case astExpression::kUIntConstant:
-            case astExpression::kFloatConstant:
-            case astExpression::kDoubleConstant:
-                return operand;
-            default:
-                fatal("invalid operation in constant expression");
-                return 0;
+        case astExpression::kIntConstant:
+        case astExpression::kUIntConstant:
+        case astExpression::kFloatConstant:
+        case astExpression::kDoubleConstant:
+            return operand;
+        default:
+            fatal("invalid operation in constant expression");
+            return 0;
         }
     } else if (expression->type == astExpression::kOperation) {
         int operation = ((astOperationExpression*)expression)->operation;
@@ -258,10 +258,10 @@ bool parser::isBuiltin() const {
     if (!isType(kType_keyword))
         return false;
     switch (m_token.m_keyword) {
-        #include "lexemes.h"
-            return true;
-        default:
-            break;
+    #include "lexemes.h"
+        return true;
+    default:
+        break;
     }
     return false;
 }
@@ -269,7 +269,7 @@ bool parser::isBuiltin() const {
 #define TYPENAME(...)
 
 /// The parser entry point
-astTU *parser::parse(int type) {
+CHECK_RETURN astTU *parser::parse(int type) {
     m_ast = new astTU(type);
     m_scopes.push_back(scope());
     for (;;) {
@@ -316,7 +316,7 @@ astTU *parser::parse(int type) {
     return m_ast;
 }
 
-bool parser::parseStorage(topLevel &current) {
+CHECK_RETURN bool parser::parseStorage(topLevel &current) {
     // const, in, out, attribute, uniform, varying, buffer, shared
     if (isKeyword(kKeyword_const)) {
         current.storage = kConst;
@@ -346,7 +346,7 @@ bool parser::parseStorage(topLevel &current) {
     return true;
 }
 
-bool parser::parseAuxiliary(topLevel &current) {
+CHECK_RETURN bool parser::parseAuxiliary(topLevel &current) {
     // centroid, sample, patch
     if (isKeyword(kKeyword_centroid)) {
         current.auxiliary = kCentroid;
@@ -361,7 +361,7 @@ bool parser::parseAuxiliary(topLevel &current) {
     return true;
 }
 
-bool parser::parseInterpolation(topLevel &current) {
+CHECK_RETURN bool parser::parseInterpolation(topLevel &current) {
     // smooth, flat, noperspective
     if (isKeyword(kKeyword_smooth)) {
         current.interpolation = kSmooth;
@@ -376,7 +376,7 @@ bool parser::parseInterpolation(topLevel &current) {
     return true;
 }
 
-bool parser::parsePrecision(topLevel &current) {
+CHECK_RETURN bool parser::parsePrecision(topLevel &current) {
     // highp, mediump, lowp
     if (isKeyword(kKeyword_highp)) {
         current.precision = kHighp;
@@ -391,7 +391,7 @@ bool parser::parsePrecision(topLevel &current) {
     return true;
 }
 
-bool parser::parseInvariant(topLevel &) {
+CHECK_RETURN bool parser::parseInvariant(topLevel &) {
     // invariant
     if (isKeyword(kKeyword_invariant)) {
         // TODO:
@@ -400,7 +400,7 @@ bool parser::parseInvariant(topLevel &) {
     return true;
 }
 
-bool parser::parsePrecise(topLevel &) {
+CHECK_RETURN bool parser::parsePrecise(topLevel &) {
     // precise
     if (isKeyword(kKeyword_precise)) {
         // TODO:
@@ -409,7 +409,7 @@ bool parser::parsePrecise(topLevel &) {
     return true;
 }
 
-bool parser::parseMemory(topLevel &current) {
+CHECK_RETURN bool parser::parseMemory(topLevel &current) {
     // coherent, volatile, restrict, readonly, writeonly
     if (isKeyword(kKeyword_coherent)) {
         current.memory |= kCoherent;
@@ -430,7 +430,7 @@ bool parser::parseMemory(topLevel &current) {
     return true;
 }
 
-bool parser::parseTopLevelItem(topLevel &level, topLevel *continuation) {
+CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuation) {
     std::vector<topLevel> items;
     while (!isBuiltin() && !isType(kType_identifier)) {
         topLevel next;
@@ -594,7 +594,7 @@ bool parser::parseTopLevelItem(topLevel &level, topLevel *continuation) {
     return true;
 }
 
-bool parser::parseTopLevel(std::vector<topLevel> &items) {
+CHECK_RETURN bool parser::parseTopLevel(std::vector<topLevel> &items) {
     topLevel item;
     if (!parseTopLevelItem(item))
         return false;
@@ -614,12 +614,12 @@ void parser::parseLayout(std::vector<astLayoutQualifier*> &) {
     fatal("not implemented: layout qualifier parsing");
 }
 
-astStruct *parser::parseStruct() {
+CHECK_RETURN astStruct *parser::parseStruct() {
     fatal("not implemented: structure parsing");
     return 0;
 }
 
-astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCondition end) {
+CHECK_RETURN astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCondition end) {
     // Precedence climbing
     while (!isEndCondition(end)) {
         int binaryPrecedence = m_token.precedence();
@@ -674,7 +674,7 @@ astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCon
     return lhs;
 }
 
-astExpression *parser::parseUnaryPrefix(endCondition condition) {
+CHECK_RETURN astExpression *parser::parseUnaryPrefix(endCondition condition) {
     if (isOperator(kOperator_paranthesis_begin)) {
         if (!next()) return 0; // skip '('
         return parseExpression(kEndConditionParanthesis);
@@ -732,7 +732,7 @@ astExpression *parser::parseUnaryPrefix(endCondition condition) {
     return 0;
 }
 
-astExpression *parser::parseUnary(endCondition end) {
+CHECK_RETURN astExpression *parser::parseUnary(endCondition end) {
     astExpression *operand = parseUnaryPrefix(end);
     if (!operand)
         return 0;
@@ -781,7 +781,7 @@ astExpression *parser::parseUnary(endCondition end) {
     return operand;
 }
 
-astExpression *parser::parseExpression(endCondition condition) {
+CHECK_RETURN astExpression *parser::parseExpression(endCondition condition) {
     astExpression *lhs = parseUnary(condition);
     if (!lhs)
         return 0;
@@ -790,18 +790,18 @@ astExpression *parser::parseExpression(endCondition condition) {
     return parseBinary(0, lhs, condition);
 }
 
-astExpressionStatement *parser::parseExpressionStatement(endCondition condition) {
+CHECK_RETURN astExpressionStatement *parser::parseExpressionStatement(endCondition condition) {
     astExpression *expression = parseExpression(condition);
     return expression ? GC_NEW(astStatement) astExpressionStatement(expression) : 0;
 }
 
-astConstantExpression *parser::parseArraySize() {
+CHECK_RETURN astConstantExpression *parser::parseArraySize() {
     if (!next()) // skip '['
         return 0;
     return parseExpression(kEndConditionBracket);
 }
 
-astCompoundStatement *parser::parseCompoundStatement() {
+CHECK_RETURN astCompoundStatement *parser::parseCompoundStatement() {
     astCompoundStatement *statement = GC_NEW(astStatement) astCompoundStatement();
     if (!next()) // skip '{'
         return 0;
@@ -815,7 +815,7 @@ astCompoundStatement *parser::parseCompoundStatement() {
     return statement;
 }
 
-astIfStatement *parser::parseIfStatement() {
+CHECK_RETURN astIfStatement *parser::parseIfStatement() {
     astIfStatement *statement = GC_NEW(astStatement) astIfStatement();
     if (!next()) // skip 'if'
         return 0;
@@ -842,7 +842,7 @@ astIfStatement *parser::parseIfStatement() {
     return statement;
 }
 
-astSwitchStatement *parser::parseSwitchStatement() {
+CHECK_RETURN astSwitchStatement *parser::parseSwitchStatement() {
     astSwitchStatement *statement = GC_NEW(astStatement) astSwitchStatement();
     if (!next()) // skip 'switch'
         return 0;
@@ -914,7 +914,7 @@ astSwitchStatement *parser::parseSwitchStatement() {
     return statement;
 }
 
-astCaseLabelStatement *parser::parseCaseLabelStatement() {
+CHECK_RETURN astCaseLabelStatement *parser::parseCaseLabelStatement() {
     astCaseLabelStatement *statement = GC_NEW(astStatement) astCaseLabelStatement();
     if (isKeyword(kKeyword_default)) {
         statement->isDefault = true;
@@ -932,7 +932,7 @@ astCaseLabelStatement *parser::parseCaseLabelStatement() {
     return statement;
 }
 
-astForStatement *parser::parseForStatement() {
+CHECK_RETURN astForStatement *parser::parseForStatement() {
     astForStatement *statement = GC_NEW(astStatement) astForStatement();
     if (!next()) // skip 'for'
         return 0;
@@ -962,28 +962,28 @@ astForStatement *parser::parseForStatement() {
     return statement;
 }
 
-astContinueStatement *parser::parseContinueStatement() {
+CHECK_RETURN astContinueStatement *parser::parseContinueStatement() {
     astContinueStatement *statement = GC_NEW(astStatement) astContinueStatement();
     if (!next()) // skip 'continue'
         return 0;
     return statement;
 }
 
-astBreakStatement *parser::parseBreakStatement() {
+CHECK_RETURN astBreakStatement *parser::parseBreakStatement() {
     astBreakStatement *statement = GC_NEW(astStatement) astBreakStatement();
     if (!next())
         return 0; // skip 'break'
     return statement;
 }
 
-astDiscardStatement *parser::parseDiscardStatement() {
+CHECK_RETURN astDiscardStatement *parser::parseDiscardStatement() {
     astDiscardStatement *statement = GC_NEW(astStatement) astDiscardStatement();
     if (!next()) // skip 'discard'
         return 0;
     return statement;
 }
 
-astReturnStatement *parser::parseReturnStatement() {
+CHECK_RETURN astReturnStatement *parser::parseReturnStatement() {
     astReturnStatement *statement = GC_NEW(astStatement) astReturnStatement();
     if (!next()) // skip 'return'
         return 0;
@@ -994,7 +994,7 @@ astReturnStatement *parser::parseReturnStatement() {
     return statement;
 }
 
-astDoStatement *parser::parseDoStatement() {
+CHECK_RETURN astDoStatement *parser::parseDoStatement() {
     astDoStatement *statement = GC_NEW(astStatement) astDoStatement();
     if (!next()) // skip 'do'
         return 0;
@@ -1021,7 +1021,7 @@ astDoStatement *parser::parseDoStatement() {
     return statement;
 }
 
-astWhileStatement *parser::parseWhileStatement() {
+CHECK_RETURN astWhileStatement *parser::parseWhileStatement() {
     astWhileStatement *statement = GC_NEW(astStatement) astWhileStatement();
     if (!next()) // skip 'while'
         return 0;
@@ -1040,7 +1040,7 @@ astWhileStatement *parser::parseWhileStatement() {
     return statement;
 }
 
-astDeclarationStatement *parser::parseDeclarationStatement(endCondition condition) {
+CHECK_RETURN astDeclarationStatement *parser::parseDeclarationStatement(endCondition condition) {
     m_lexer.backup();
 
     bool isConst = false;
@@ -1138,7 +1138,7 @@ astDeclarationStatement *parser::parseDeclarationStatement(endCondition conditio
     return statement;
 }
 
-astSimpleStatement *parser::parseDeclarationOrExpressionStatement(endCondition condition) {
+CHECK_RETURN astSimpleStatement *parser::parseDeclarationOrExpressionStatement(endCondition condition) {
     astSimpleStatement *declaration = parseDeclarationStatement(condition);
     if (declaration) {
         return declaration;
@@ -1147,7 +1147,7 @@ astSimpleStatement *parser::parseDeclarationOrExpressionStatement(endCondition c
     }
 }
 
-astStatement *parser::parseStatement() {
+CHECK_RETURN astStatement *parser::parseStatement() {
     if (isType(kType_scope_begin)) {
         return parseCompoundStatement();
     } else if (isKeyword(kKeyword_if)) {
@@ -1177,7 +1177,7 @@ astStatement *parser::parseStatement() {
     }
 }
 
-astFunction *parser::parseFunction(const topLevel &parse) {
+CHECK_RETURN astFunction *parser::parseFunction(const topLevel &parse) {
     astFunction *function = GC_NEW(astFunction) astFunction();
     function->returnType = parse.type;
     function->name = parse.name;
@@ -1306,24 +1306,24 @@ astBuiltin *parser::parseBuiltin() {
     }
 
     switch (m_token.m_keyword) {
-        #include "lexemes.h"
-            for (size_t i = 0; i < m_builtins.size(); i++) {
-                if (m_builtins[i]->type == m_token.m_keyword) {
-                    return m_builtins[i];
-                }
+    #include "lexemes.h"
+        for (size_t i = 0; i < m_builtins.size(); i++) {
+            if (m_builtins[i]->type == m_token.m_keyword) {
+                return m_builtins[i];
             }
-            m_builtins.push_back(GC_NEW(astType) astBuiltin(m_token.m_keyword));
-            return m_builtins.back();
-            break;
-        default:
-            break;
+        }
+        m_builtins.push_back(GC_NEW(astType) astBuiltin(m_token.m_keyword));
+        return m_builtins.back();
+        break;
+    default:
+        break;
     }
     fatal("internal compiler error: attempted to parse as builtin type");
     return 0;
 }
 #undef TYPENAME
 
-astConstructorCall *parser::parseConstructorCall() {
+CHECK_RETURN astConstructorCall *parser::parseConstructorCall() {
     astConstructorCall *expression = GC_NEW(astExpression) astConstructorCall();
     if (!(expression->type = parseBuiltin()))
         return 0;
@@ -1348,7 +1348,7 @@ astConstructorCall *parser::parseConstructorCall() {
     return expression;
 }
 
-astFunctionCall *parser::parseFunctionCall() {
+CHECK_RETURN astFunctionCall *parser::parseFunctionCall() {
     astFunctionCall *expression = GC_NEW(astExpression) astFunctionCall();
     expression->name = m_token.m_identifier;
     if (!next()) // skip identifier
@@ -1371,7 +1371,7 @@ astFunctionCall *parser::parseFunctionCall() {
     return expression;
 }
 
-bool parser::next() {
+CHECK_RETURN bool parser::next() {
     m_lexer.read(m_token, true);
     if (isType(kType_eof)) {
         fatal("premature end of file");

@@ -4,19 +4,19 @@ namespace glsl {
 
 const char *astStatement::name() const {
     switch (type) {
-        case kCompound:     return "compound";
-        case kDeclaration:  return "declaration";
-        case kExpression:   return "expression";
-        case kIf:           return "if";
-        case kSwitch:       return "switch";
-        case kCaseLabel:    return "case label";
-        case kWhile:        return "while";
-        case kDo:           return "do";
-        case kFor:          return "for";
-        case kContinue:     return "continue";
-        case kBreak:        return "break";
-        case kReturn:       return "return";
-        case kDiscard:      return "discard";
+    case kCompound:     return "compound";
+    case kDeclaration:  return "declaration";
+    case kExpression:   return "expression";
+    case kIf:           return "if";
+    case kSwitch:       return "switch";
+    case kCaseLabel:    return "case label";
+    case kWhile:        return "while";
+    case kDo:           return "do";
+    case kFor:          return "for";
+    case kContinue:     return "continue";
+    case kBreak:        return "break";
+    case kReturn:       return "return";
+    case kDiscard:      return "discard";
     }
     return "(unknown)";
 }

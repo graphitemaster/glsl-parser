@@ -83,44 +83,44 @@ static void printVariable(astVariable *variable, bool nameOnly = false) {
 
 static void printStorage(int storage) {
     switch (storage) {
-        case kConst:
-            print("const ");
-            break;
-        case kIn:
-            print("in ");
-            break;
-        case kOut:
-            print("out ");
-            break;
-        case kAttribute:
-            print("attribute ");
-            break;
-        case kUniform:
-            print("uniform ");
-            break;
-        case kVarying:
-            print("varying ");
-            break;
-        case kBuffer:
-            print("buffer ");
-            break;
-        case kShared:
-            print("shared ");
-            break;
+    case kConst:
+        print("const ");
+        break;
+    case kIn:
+        print("in ");
+        break;
+    case kOut:
+        print("out ");
+        break;
+    case kAttribute:
+        print("attribute ");
+        break;
+    case kUniform:
+        print("uniform ");
+        break;
+    case kVarying:
+        print("varying ");
+        break;
+    case kBuffer:
+        print("buffer ");
+        break;
+    case kShared:
+        print("shared ");
+        break;
     }
 }
 
 static void printAuxiliary(int auxiliary) {
     switch (auxiliary) {
-        case kCentroid:
-            print("centroid ");
-            break;
-        case kSample:
-            print("sample ");
-            break;
-        case kPatch:
-            print("patch ");
-            break;
+    case kCentroid:
+        print("centroid ");
+        break;
+    case kSample:
+        print("sample ");
+        break;
+    case kPatch:
+        print("patch ");
+        break;
     }
 }
 
@@ -153,15 +153,15 @@ static void printGlobalVariable(astGlobalVariable *variable) {
     printPrecision(variable->precision);
 
     switch (variable->interpolation) {
-        case kSmooth:
-            print("smooth ");
-            break;
-        case kFlat:
-            print("flat ");
-            break;
-        case kNoPerspective:
-            print("noperspective ");
-            break;
+    case kSmooth:
+        print("smooth ");
+        break;
+    case kFlat:
+        print("flat ");
+        break;
+    case kNoPerspective:
+        print("noperspective ");
+        break;
     }
 
     printVariable((astVariable*)variable);
@@ -282,48 +282,48 @@ static void printOperation(astOperationExpression *expression) {
 
 static void printExpression(astExpression *expression) {
     switch (expression->type) {
-        case astExpression::kIntConstant:
-            return printIntConstant((astIntConstant*)expression);
-        case astExpression::kUIntConstant:
-            return printUIntConstant((astUIntConstant*)expression);
-        case astExpression::kFloatConstant:
-            return printFloatConstant((astFloatConstant*)expression);
-        case astExpression::kDoubleConstant:
-            return printDoubleConstant((astDoubleConstant*)expression);
-        case astExpression::kBoolConstant:
-            return printBoolConstant((astBoolConstant*)expression);
-        case astExpression::kVariableIdentifier:
-            return printVariableIdentifier((astVariableIdentifier*)expression);
-        case astExpression::kFieldOrSwizzle:
-            return printFieldOrSwizzle((astFieldOrSwizzle*)expression);
-        case astExpression::kArraySubscript:
-            return printArraySubscript((astArraySubscript*)expression);
-        case astExpression::kFunctionCall:
-            return printFunctionCall((astFunctionCall*)expression);
-        case astExpression::kConstructorCall:
-            return printConstructorCall((astConstructorCall*)expression);
-        case astExpression::kPostIncrement:
-            return printPostIncrement((astPostIncrementExpression*)expression);
-        case astExpression::kPostDecrement:
-            return printPostDecrement((astPostDecrementExpression*)expression);
-        case astExpression::kUnaryMinus:
-            return printUnaryMinus((astUnaryMinusExpression*)expression);
-        case astExpression::kUnaryPlus:
-            return printUnaryPlus((astUnaryPlusExpression*)expression);
-        case astExpression::kBitNot:
-            return printUnaryBitNot((astUnaryBitNotExpression*)expression);
-        case astExpression::kLogicalNot:
-            return printUnaryLogicalNot((astUnaryLogicalNotExpression*)expression);
-        case astExpression::kPrefixIncrement:
-            return printPrefixIncrement((astPrefixIncrementExpression*)expression);
-        case astExpression::kPrefixDecrement:
-            return printPrefixDecrement((astPrefixDecrementExpression*)expression);
-        case astExpression::kAssign:
-            return printAssign((astAssignmentExpression*)expression);
-        case astExpression::kSequence:
-            return printSequence((astSequenceExpression*)expression);
-        case astExpression::kOperation:
-            return printOperation((astOperationExpression*)expression);
+    case astExpression::kIntConstant:
+        return printIntConstant((astIntConstant*)expression);
+    case astExpression::kUIntConstant:
+        return printUIntConstant((astUIntConstant*)expression);
+    case astExpression::kFloatConstant:
+        return printFloatConstant((astFloatConstant*)expression);
+    case astExpression::kDoubleConstant:
+        return printDoubleConstant((astDoubleConstant*)expression);
+    case astExpression::kBoolConstant:
+        return printBoolConstant((astBoolConstant*)expression);
+    case astExpression::kVariableIdentifier:
+        return printVariableIdentifier((astVariableIdentifier*)expression);
+    case astExpression::kFieldOrSwizzle:
+        return printFieldOrSwizzle((astFieldOrSwizzle*)expression);
+    case astExpression::kArraySubscript:
+        return printArraySubscript((astArraySubscript*)expression);
+    case astExpression::kFunctionCall:
+        return printFunctionCall((astFunctionCall*)expression);
+    case astExpression::kConstructorCall:
+        return printConstructorCall((astConstructorCall*)expression);
+    case astExpression::kPostIncrement:
+        return printPostIncrement((astPostIncrementExpression*)expression);
+    case astExpression::kPostDecrement:
+        return printPostDecrement((astPostDecrementExpression*)expression);
+    case astExpression::kUnaryMinus:
+        return printUnaryMinus((astUnaryMinusExpression*)expression);
+    case astExpression::kUnaryPlus:
+        return printUnaryPlus((astUnaryPlusExpression*)expression);
+    case astExpression::kBitNot:
+        return printUnaryBitNot((astUnaryBitNotExpression*)expression);
+    case astExpression::kLogicalNot:
+        return printUnaryLogicalNot((astUnaryLogicalNotExpression*)expression);
+    case astExpression::kPrefixIncrement:
+        return printPrefixIncrement((astPrefixIncrementExpression*)expression);
+    case astExpression::kPrefixDecrement:
+        return printPrefixDecrement((astPrefixDecrementExpression*)expression);
+    case astExpression::kAssign:
+        return printAssign((astAssignmentExpression*)expression);
+    case astExpression::kSequence:
+        return printSequence((astSequenceExpression*)expression);
+    case astExpression::kOperation:
+        return printOperation((astOperationExpression*)expression);
     }
 }
 
@@ -433,34 +433,34 @@ static void printDiscardStatement() {
 
 static void printStatement(astStatement *statement) {
     switch (statement->type) {
-        case astStatement::kCompound:
-            return printCompoundStatement((astCompoundStatement*)statement);
-        case astStatement::kEmpty:
-            return printEmptyStatement();
-        case astStatement::kDeclaration:
-            return printDeclarationStatement((astDeclarationStatement*)statement);
-        case astStatement::kExpression:
-            return printExpressionStatement((astExpressionStatement*)statement);
-        case astStatement::kIf:
-            return printIfStetement((astIfStatement*)statement);
-        case astStatement::kSwitch:
-            return printSwitchStatement((astSwitchStatement*)statement);
-        case astStatement::kCaseLabel:
-            return printCaseLabelStatement((astCaseLabelStatement*)statement);
-        case astStatement::kWhile:
-            return printWhileStatement((astWhileStatement*)statement);
-        case astStatement::kDo:
-            return printDoStatement((astDoStatement*)statement);
-        case astStatement::kFor:
-            return printForStatement((astForStatement*)statement);
-        case astStatement::kContinue:
-            return printContinueStatement();
-        case astStatement::kBreak:
-            return printBreakStatement();
-        case astStatement::kReturn:
-            return printReturnStatement((astReturnStatement*)statement);
-        case astStatement::kDiscard:
-            return printDiscardStatement();
+    case astStatement::kCompound:
+        return printCompoundStatement((astCompoundStatement*)statement);
+    case astStatement::kEmpty:
+        return printEmptyStatement();
+    case astStatement::kDeclaration:
+        return printDeclarationStatement((astDeclarationStatement*)statement);
+    case astStatement::kExpression:
+        return printExpressionStatement((astExpressionStatement*)statement);
+    case astStatement::kIf:
+        return printIfStetement((astIfStatement*)statement);
+    case astStatement::kSwitch:
+        return printSwitchStatement((astSwitchStatement*)statement);
+    case astStatement::kCaseLabel:
+        return printCaseLabelStatement((astCaseLabelStatement*)statement);
+    case astStatement::kWhile:
+        return printWhileStatement((astWhileStatement*)statement);
+    case astStatement::kDo:
+        return printDoStatement((astDoStatement*)statement);
+    case astStatement::kFor:
+        return printForStatement((astForStatement*)statement);
+    case astStatement::kContinue:
+        return printContinueStatement();
+    case astStatement::kBreak:
+        return printBreakStatement();
+    case astStatement::kReturn:
+        return printReturnStatement((astReturnStatement*)statement);
+    case astStatement::kDiscard:
+        return printDiscardStatement();
     }
     print("\n");
 }
