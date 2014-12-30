@@ -5,7 +5,7 @@ CXXFLAGS = \
 	-Wall \
 	-Wextra \
 	-Wformat \
-	-g3
+	-O3
 
 BIN = glsl-parser
 

@@ -433,6 +433,55 @@ CHECK_RETURN bool parser::parseMemory(topLevel &current) {
     return true;
 }
 
+static struct {
+    const char *qualifier;
+    bool isAssign;
+} kLayoutQualifiers[] = {
+    { "shared",                     false },
+    { "packed",                     false },
+    { "std140",                     false },
+    { "row_major",                  false },
+    { "column_major",               false },
+    { "binding",                    true  },
+    { "offset",                     true  },
+    { "align",                      true  },
+    { "location",                   true  },
+    { "component",                  true  },
+    { "index",                      true  },
+    { "triangles",                  false },
+    { "quads",                      false },
+    { "isolines",                   false },
+    { "equal_spacing",              false },
+    { "fractional_even_spacing",    false },
+    { "fractional_odd_spacing",     false },
+    { "cw",                         false },
+    { "ccw",                        false },
+    { "point_mode",                 false },
+    { "points",                     false },
+    { "lines",                      false },
+    { "lines_adjacency",            false },
+    { "triangles_adjacency",        false },
+    { "invocations",                true  },
+    { "origin_upper_left",          false },
+    { "pixel_center_integer",       false },
+    { "early_fragment_tests",       false },
+    { "local_size_x",               true  },
+    { "local_size_y",               true  },
+    { "local_size_z",               true  },
+    { "xfb_buffer",                 true  },
+    { "xfb_stride",                 true  },
+    { "xfb_offset",                 true  },
+    { "vertices",                   true  },
+    { "line_strip",                 false },
+    { "triangle_strip",             false },
+    { "max_vertices",               true  },
+    { "stream",                     true  },
+    { "depth_any",                  false },
+    { "depth_greater",              false },
+    { "depth_less",                 false },
+    { "depth_unchanged",            false }
+};
+
 CHECK_RETURN bool parser::parseLayout(topLevel &current) {
     std::vector<astLayoutQualifier*> &qualifiers = current.layoutQualifiers;
     if (isKeyword(kKeyword_layout)) {
@@ -453,12 +502,28 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
             if (!isType(kType_identifier) && !isKeyword(kKeyword_shared))
                 return false;
 
+            int found = -1;
             qualifier->name = isType(kType_identifier) ? m_token.m_identifier : "shared";
+            for (size_t i = 0; i < sizeof(kLayoutQualifiers)/sizeof(kLayoutQualifiers[0]); i++) {
+                if (qualifier->name != kLayoutQualifiers[i].qualifier)
+                    continue;
+                found = int(i);
+                break;
+            }
+
+            if (found == -1) {
+                fatal("unknown layout qualifier `%s'", qualifier->name.c_str());
+                return false;
+            }
 
             if (!next()) // skip identifier or 'shared' keyword
                 return false;
 
             if (isOperator(kOperator_assign)) {
+                if (!kLayoutQualifiers[found].isAssign) {
+                    fatal("unexpected layout qualifier value on `%s' layout qualifier", qualifier->name.c_str());
+                    return false;
+                }
                 if (!next()) // skip '='
                     return false;
                 if (!(qualifier->initialValue = parseExpression(kEndConditionComma | kEndConditionParanthesis)))
@@ -471,7 +536,12 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
                 }
                 if (!(qualifier->initialValue = evaluate(qualifier->initialValue)))
                     return false;
-            } else if (isOperator(kOperator_comma)) {
+            } else if (kLayoutQualifiers[found].isAssign) {
+                fatal("expected layout qualifier value for `%s' layout qualifier", qualifier->name.c_str());
+                return false;
+            }
+
+            if (isOperator(kOperator_comma)) {
                 if (!next()) // skip ','
                     return false;
             }
