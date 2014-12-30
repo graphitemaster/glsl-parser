@@ -150,6 +150,22 @@ static void printPrecision(int precision) {
 }
 
 static void printGlobalVariable(astGlobalVariable *variable) {
+    std::vector<astLayoutQualifier*> &qualifiers = variable->layoutQualifiers;
+    if (variable->layoutQualifiers.size()) {
+        print("layout (");
+        for (size_t i = 0; i < qualifiers.size(); i++) {
+            astLayoutQualifier *qualifier = qualifiers[i];
+            print("%s", qualifier->name.c_str());
+            if (qualifier->initialValue) {
+                print(" = ");
+                printExpression(qualifier->initialValue);
+            }
+            if (i != qualifiers.size() - 1)
+                print(", ");
+        }
+        print(") ");
+    }
+
     printStorage(variable->storage);
     printAuxiliary(variable->auxiliary);
     printMemory(variable->memory);

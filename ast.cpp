@@ -68,8 +68,8 @@ astGlobalVariable::astGlobalVariable()
     , memory(0)
     , precision(-1)
     , interpolation(-1)
-    , initialValue(0)
     , isInvariant(false)
+    , initialValue(0)
 {
 }
 
@@ -90,6 +90,11 @@ astEmptyStatement::astEmptyStatement()
 
 astDeclarationStatement::astDeclarationStatement()
     : astSimpleStatement(astStatement::kDeclaration)
+{
+}
+
+astLayoutQualifier::astLayoutQualifier()
+    : initialValue(0)
 {
 }
 

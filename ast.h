@@ -170,7 +170,8 @@ struct astGlobalVariable : astVariable {
 
 struct astLayoutQualifier : astNode<astLayoutQualifier> {
     astLayoutQualifier();
-    // TODO: implement layout qualifiers
+    std::string name;
+    astConstantExpression *initialValue;
 };
 
 struct astFunction : astNode<astFunction> {

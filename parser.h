@@ -32,10 +32,10 @@ struct topLevel {
     int memory;
     int precision;
     int interpolation;
-    std::vector<astLayoutQualifier*> layoutQualifiers;
     astType *type;
     astConstantExpression *initialValue;
     std::vector<astConstantExpression*> arraySizes;
+    std::vector<astLayoutQualifier*> layoutQualifiers;
     bool isInvariant;
     bool isPrecise;
     bool isArray;
@@ -72,6 +72,7 @@ protected:
     CHECK_RETURN bool parseInvariant(topLevel &current); // invariant
     CHECK_RETURN bool parsePrecise(topLevel &current); // precise
     CHECK_RETURN bool parseMemory(topLevel &current); // coherent, volatile, restrict, readonly, writeonly
+    CHECK_RETURN bool parseLayout(topLevel &current);
 
     CHECK_RETURN bool parseTopLevelItem(topLevel &level, topLevel *continuation = 0);
     CHECK_RETURN bool parseTopLevel(std::vector<topLevel> &top);
@@ -84,8 +85,6 @@ protected:
 
     CHECK_RETURN bool isConstantValue(astExpression *expression) const;
     CHECK_RETURN bool isConstant(astExpression *expression) const;
-
-    void parseLayout(std::vector<astLayoutQualifier*> &layoutQualifiers);
 
     void fatal(const char *fmt, ...);
 

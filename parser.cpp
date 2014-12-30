@@ -294,6 +294,7 @@ CHECK_RETURN astTU *parser::parse(int type) {
                 global->name = parse.name;
                 global->isInvariant = parse.isInvariant;
                 global->isPrecise = parse.isPrecise;
+                global->layoutQualifiers = parse.layoutQualifiers;
                 if (parse.initialValue) {
                     if (!(global->initialValue = evaluate(parse.initialValue)))
                         return 0;
@@ -432,6 +433,56 @@ CHECK_RETURN bool parser::parseMemory(topLevel &current) {
     return true;
 }
 
+CHECK_RETURN bool parser::parseLayout(topLevel &current) {
+    std::vector<astLayoutQualifier*> &qualifiers = current.layoutQualifiers;
+    if (isKeyword(kKeyword_layout)) {
+        if (!next()) // skip 'layout'
+            return false;
+        if (!isOperator(kOperator_paranthesis_begin)) {
+            fatal("expected `(' after `layout'");
+            return false;
+        }
+        if (!next()) // skip '('
+            return false;
+        while (!isOperator(kOperator_paranthesis_end)) {
+            astLayoutQualifier *qualifier = GC_NEW(astLayoutQualifier) astLayoutQualifier();
+
+            // "The tokens used for layout-qualifier-name are identifiers,
+            //  not keywords, however, the shared keyword is allowed as a
+            //  layout-qualifier-id."
+            if (!isType(kType_identifier) && !isKeyword(kKeyword_shared))
+                return false;
+
+            qualifier->name = isType(kType_identifier) ? m_token.m_identifier : "shared";
+
+            if (!next()) // skip identifier or 'shared' keyword
+                return false;
+
+            if (isOperator(kOperator_assign)) {
+                if (!next()) // skip '='
+                    return false;
+                if (!(qualifier->initialValue = parseExpression(kEndConditionComma | kEndConditionParanthesis)))
+                    return false;
+                if (!isConstant(qualifier->initialValue)) {
+                    // TODO: check integer-constant-expression
+                    fatal("value for layout qualifier `%s' is not a valid constant expression",
+                        qualifier->name.c_str());
+                    return false;
+                }
+                if (!(qualifier->initialValue = evaluate(qualifier->initialValue)))
+                    return false;
+            } else if (isOperator(kOperator_comma)) {
+                if (!next()) // skip ','
+                    return false;
+            }
+            qualifiers.push_back(qualifier);
+        }
+        if (!next()) // skip ')'
+            return false;
+    }
+    return true;
+}
+
 CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuation) {
     std::vector<topLevel> items;
     while (!isBuiltin() && !isType(kType_identifier)) {
@@ -445,6 +496,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
         if (!parseInvariant(next))     return false;
         if (!parsePrecise(next))       return false;
         if (!parseMemory(next))        return false;
+        if (!parseLayout(next))        return false;
         items.push_back(next);
     }
 
@@ -511,6 +563,16 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
         level.interpolation = next.interpolation;
         level.precision = next.precision;
         level.memory |= next.memory;
+
+        for (size_t i = 0; i < next.layoutQualifiers.size(); i++) {
+            // "When the same layout-qualifier-name occurs multiple times, in a single declaration, the
+            //  last occurrence overrides the former occurrence(s)"
+            for (size_t j = 0; i < level.layoutQualifiers.size(); j++) {
+                if (next.layoutQualifiers[i]->name == level.layoutQualifiers[j]->name)
+                    level.layoutQualifiers.erase(level.layoutQualifiers.begin() + j);
+            }
+            level.layoutQualifiers.push_back(next.layoutQualifiers[i]);
+        }
     }
 
     // "It's a compile-time error to use interpolation qualifiers with patch"
@@ -610,10 +672,6 @@ CHECK_RETURN bool parser::parseTopLevel(std::vector<topLevel> &items) {
         items.push_back(nextItem);
     }
     return true;
-}
-
-void parser::parseLayout(std::vector<astLayoutQualifier*> &) {
-    fatal("not implemented: layout qualifier parsing");
 }
 
 CHECK_RETURN astStruct *parser::parseStruct() {
