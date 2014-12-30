@@ -6,8 +6,9 @@
 
 namespace glsl {
 
-parser::parser(const std::string &source)
+parser::parser(const std::string &source, const char *fileName)
     : m_lexer(source)
+    , m_fileName(fileName)
 {
 }
 
@@ -243,7 +244,8 @@ astConstantExpression *parser::evaluate(astExpression *expression) {
 
 void parser::fatal(const char *fmt, ...) {
     char buffer[1024];
-    snprintf(buffer, sizeof(buffer), "<string>:%zu:%zu: error: ", m_lexer.line(), m_lexer.column());
+    snprintf(buffer, sizeof(buffer), "%s:%zu:%zu: error: ", m_fileName,
+        m_lexer.line(), m_lexer.column());
     m_error = buffer;
     va_list va;
     va_start(va, fmt);

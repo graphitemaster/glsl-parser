@@ -45,7 +45,7 @@ struct topLevel {
 
 struct parser {
     ~parser();
-    parser(const std::string &source);
+    parser(const std::string &source, const char *fileName);
     CHECK_RETURN astTU *parse(int type);
 
     const char *error() const;
@@ -138,6 +138,7 @@ private:
     std::vector<scope> m_scopes;
     std::vector<astBuiltin*> m_builtins;
     std::string m_error;
+    const char *m_fileName;
 
     std::vector<astMemory> m_memory; // Memory of AST held here
 };
