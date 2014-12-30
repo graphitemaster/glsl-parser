@@ -15,6 +15,8 @@ The straight-forward API allows you to parse GLSL into an abstact-syntax-tree in
 
 A test-suite and GLSL source-generator is included to get you started.
 
+Check out the superior diagnostics [here](EXAMPLE_ERRORS.md)
+
 ### Possible uses
   * Verify a shader without running it
   * Find hard-to-find syntax or semantic errors with the superior diagnostics
