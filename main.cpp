@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "parser.h"
 
@@ -530,24 +531,31 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    FILE *fp = fopen(argv[0], "r");
-    if (!fp) {
-        fprintf(stderr, "failed to open `%s'\n", argv[0]);
-        return 1;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    size_t length = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-
     std::string source;
-    source.resize(length);
-    if (fread(&source[0], length, 1, fp) != 1) {
-        fprintf(stderr, "failed to read source\n");
+    if (strcmp(argv[0], "-")) {
+        FILE *fp = fopen(argv[0], "r");
+        if (!fp) {
+            fprintf(stderr, "failed to open `%s'\n", argv[0]);
+            return 1;
+        }
+
+        fseek(fp, 0, SEEK_END);
+        size_t length = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
+
+        source.resize(length);
+        if (fread(&source[0], length, 1, fp) != 1) {
+            fprintf(stderr, "failed to read source\n");
+            fclose(fp);
+            return 1;
+        }
         fclose(fp);
-        return 1;
+    } else {
+        char buffer[1024];
+        int c;
+        while ((c = fread(buffer, 1, sizeof(buffer), stdin)))
+            source.append(buffer, c);
     }
-    fclose(fp);
 
     parser p(source);
     astTU *tu = p.parse(astTU::kFragment);

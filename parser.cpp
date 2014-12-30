@@ -1507,7 +1507,11 @@ CHECK_RETURN bool parser::next() {
         fatal("premature end of file");
         return false;
     }
-    return m_lexer.error() ? false : true;
+    if (m_lexer.error()) {
+        fatal("%s", m_lexer.error());
+        return false;
+    }
+    return true;
 }
 
 astBinaryExpression *parser::createExpression() {
