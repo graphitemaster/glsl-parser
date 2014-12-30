@@ -1,6 +1,6 @@
 # Error samples
 
-Here are some example diagnostics to show how supeiror glsl-parse is compared to
+Here are some example diagnostics to show how superior glsl-parse is compared to
 that of driver-specific diagnostics.
 
     $ echo "layout(error)" | ./glsl-parser -
