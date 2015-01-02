@@ -1,19 +1,21 @@
-#include <stdio.h>
-#include <stdarg.h>
-#include <string.h>
+#include <string.h> // strcmp, memcpy
 
 #include "parser.h"
+#include "util.h"
 
 namespace glsl {
 
-parser::parser(const std::string &source, const char *fileName)
+parser::parser(const char *source, const char *fileName)
     : m_lexer(source)
     , m_fileName(fileName)
 {
+    m_oom = strnew("Out of memory");
 }
 
 parser::~parser() {
     delete m_ast;
+    for (size_t i = 0; i < m_strings.size(); i++)
+        free(m_strings[i]);
     for (size_t i = 0; i < m_memory.size(); i++)
         m_memory[i].destroy();
 }
@@ -243,15 +245,42 @@ astConstantExpression *parser::evaluate(astExpression *expression) {
 }
 
 void parser::fatal(const char *fmt, ...) {
-    char buffer[1024];
-    snprintf(buffer, sizeof(buffer), "%s:%zu:%zu: error: ", m_fileName,
-        m_lexer.line(), m_lexer.column());
-    m_error = buffer;
+    // Format banner
+    char *banner = 0;
+    int bannerLength = allocfmt(&banner, "%s:%zu:%zu: error: ", m_fileName, m_lexer.line(), m_lexer.column());
+    if (bannerLength == -1) {
+        m_error = m_oom;
+        return;
+    }
+
+    // Format message
+    char *message = 0;
     va_list va;
     va_start(va, fmt);
-    vsnprintf(buffer, sizeof(buffer), fmt, va);
+    int messageLength = allocvfmt(&message, fmt, va);
+    if (messageLength == -1) {
+        va_end(va);
+        m_error = m_oom;
+        return;
+    }
     va_end(va);
-    m_error += buffer;
+
+    // Concatenate the two things
+    char *concat = (char *)malloc(bannerLength + messageLength + 1);
+    if (!concat) {
+        free(banner);
+        free(message);
+        m_error = m_oom;
+        return;
+    }
+
+    memcpy(concat, banner, bannerLength);
+    memcpy(concat + bannerLength, message, messageLength + 1); // +1 for '\0'
+    free(banner);
+    free(message);
+
+    m_error = concat;
+    m_strings.push_back(m_error);
 }
 
 #undef TYPENAME
@@ -293,7 +322,7 @@ CHECK_RETURN astTU *parser::parse(int type) {
                 global->precision = parse.precision;
                 global->interpolation = parse.interpolation;
                 global->baseType = parse.type;
-                global->name = parse.name;
+                global->name = strnew(parse.name);
                 global->isInvariant = parse.isInvariant;
                 global->isPrecise = parse.isPrecise;
                 global->layoutQualifiers = parse.layoutQualifiers;
@@ -505,16 +534,16 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
                 return false;
 
             int found = -1;
-            qualifier->name = isType(kType_identifier) ? m_token.m_identifier : "shared";
+            qualifier->name = strnew(isType(kType_identifier) ? m_token.asIdentifier : "shared");
             for (size_t i = 0; i < sizeof(kLayoutQualifiers)/sizeof(kLayoutQualifiers[0]); i++) {
-                if (qualifier->name != kLayoutQualifiers[i].qualifier)
+                if (strcmp(qualifier->name, kLayoutQualifiers[i].qualifier))
                     continue;
                 found = int(i);
                 break;
             }
 
             if (found == -1) {
-                fatal("unknown layout qualifier `%s'", qualifier->name.c_str());
+                fatal("unknown layout qualifier `%s'", qualifier->name);
                 return false;
             }
 
@@ -523,7 +552,7 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
 
             if (isOperator(kOperator_assign)) {
                 if (!kLayoutQualifiers[found].isAssign) {
-                    fatal("unexpected layout qualifier value on `%s' layout qualifier", qualifier->name.c_str());
+                    fatal("unexpected layout qualifier value on `%s' layout qualifier", qualifier->name);
                     return false;
                 }
                 if (!next()) // skip '='
@@ -533,13 +562,13 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
                 if (!isConstant(qualifier->initialValue)) {
                     // TODO: check integer-constant-expression
                     fatal("value for layout qualifier `%s' is not a valid constant expression",
-                        qualifier->name.c_str());
+                        qualifier->name);
                     return false;
                 }
                 if (!(qualifier->initialValue = evaluate(qualifier->initialValue)))
                     return false;
             } else if (kLayoutQualifiers[found].isAssign) {
-                fatal("expected layout qualifier value for `%s' layout qualifier", qualifier->name.c_str());
+                fatal("expected layout qualifier value for `%s' layout qualifier", qualifier->name);
                 return false;
             }
 
@@ -655,7 +684,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
 
     if (!continuation) {
         if (isType(kType_identifier)) {
-            level.type = findType(m_token.m_identifier);
+            level.type = findType(m_token.asIdentifier);
             if (!next()) // skip identifier
                 return false;
         } else {
@@ -684,7 +713,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
     }
 
     if (isType(kType_identifier)) {
-        level.name = m_token.m_identifier;
+        level.name = strnew(m_token.asIdentifier);
         if (!next())// skip identifier
             return false;
     }
@@ -722,7 +751,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
     }
 
     // if it doesn't have a name than it's illegal
-    if (level.name.empty()) {
+    if (strnil(level.name)) {
         fatal("expected name for declaration");
         return false;
     }
@@ -833,16 +862,16 @@ CHECK_RETURN astExpression *parser::parseUnaryPrefix(endCondition condition) {
     } else if (isType(kType_identifier)) {
         token peek = m_lexer.peek();
         if (IS_OPERATOR(peek, kOperator_paranthesis_begin)) {
-            astType *type = findType(m_token.m_identifier);
+            astType *type = findType(m_token.asIdentifier);
             if (type)
                 return parseConstructorCall();
             else
                 return parseFunctionCall();
         } else {
-            astVariable *find = findVariable(m_token.m_identifier);
+            astVariable *find = findVariable(m_token.asIdentifier);
             if (find)
                 return GC_NEW(astExpression) astVariableIdentifier(find);
-            fatal("`%s' was not declared in this scope", m_token.m_identifier.c_str());
+            fatal("`%s' was not declared in this scope", m_token.asIdentifier);
             return 0;
         }
     } else if (isKeyword(kKeyword_true)) {
@@ -879,7 +908,7 @@ CHECK_RETURN astExpression *parser::parseUnary(endCondition end) {
             }
             astFieldOrSwizzle *expression = GC_NEW(astExpression) astFieldOrSwizzle();
             expression->operand = operand;
-            expression->name = peek.m_identifier;
+            expression->name = strnew(peek.asIdentifier);
             operand = expression;
         } else if (IS_OPERATOR(peek, kOperator_increment)) {
             if (!next()) return 0; // skip last
@@ -1012,14 +1041,14 @@ CHECK_RETURN astSwitchStatement *parser::parseSwitchStatement() {
                 // "It is a compile-time error to have two case label constant-expression of equal value"
                 if (value->type == astExpression::kIntConstant) {
                     const int val = IVAL(value);
-                    if (std::find(seenInts.begin(), seenInts.end(), val) != seenInts.end()) {
+                    if (find(seenInts.begin(), seenInts.end(), val) != seenInts.end()) {
                         fatal("duplicate case label `%d'", val);
                         return 0;
                     }
                     seenInts.push_back(val);
                 } else if (value->type == astExpression::kUIntConstant) {
                     const unsigned int val = UVAL(value);
-                    if (std::find(seenUInts.begin(), seenUInts.end(), val) != seenUInts.end()) {
+                    if (find(seenUInts.begin(), seenUInts.end(), val) != seenUInts.end()) {
                         fatal("duplicate case label `%u'", val);
                         return 0;
                     }
@@ -1186,7 +1215,7 @@ CHECK_RETURN astDeclarationStatement *parser::parseDeclarationStatement(endCondi
     if (isBuiltin()) {
         type = parseBuiltin();
     } else if (isType(kType_identifier)) {
-        type = findType(m_token.m_identifier);
+        type = findType(m_token.asIdentifier);
     }
 
     if (!type) {
@@ -1210,7 +1239,7 @@ CHECK_RETURN astDeclarationStatement *parser::parseDeclarationStatement(endCondi
             return 0;
         }
 
-        std::string name = m_token.m_identifier;
+        const char *name = strnew(m_token.asIdentifier);
         if (!next()) // skip identifier
             return 0;
 
@@ -1241,7 +1270,7 @@ CHECK_RETURN astDeclarationStatement *parser::parseDeclarationStatement(endCondi
         astFunctionVariable *variable = GC_NEW(astVariable) astFunctionVariable();
         variable->isConst = isConst;
         variable->baseType = type;
-        variable->name = name;
+        variable->name = strnew(name);
         variable->initialValue = initialValue;
         statement->variables.push_back(variable);
         m_scopes.back().push_back(variable);
@@ -1312,7 +1341,7 @@ CHECK_RETURN astStatement *parser::parseStatement() {
 CHECK_RETURN astFunction *parser::parseFunction(const topLevel &parse) {
     astFunction *function = GC_NEW(astFunction) astFunction();
     function->returnType = parse.type;
-    function->name = parse.name;
+    function->name = strnew(parse.name);
 
     if (!next()) // skip '('
         return 0;
@@ -1343,7 +1372,7 @@ CHECK_RETURN astFunction *parser::parseFunction(const topLevel &parse) {
                 parameter->memory = kWriteOnly;
             } else if (isType(kType_identifier)) {
                 // TODO: user defined types
-                parameter->name = m_token.m_identifier;
+                parameter->name = strnew(m_token.asIdentifier);
             } else if (isOperator(kOperator_bracket_begin)) {
                 while (isOperator(kOperator_bracket_begin)) {
                     parameter->isArray = true;
@@ -1356,7 +1385,7 @@ CHECK_RETURN astFunction *parser::parseFunction(const topLevel &parse) {
                 parameter->baseType = parseBuiltin();
                 if (parameter->baseType && parameter->baseType->builtin) {
                     astBuiltin *builtin = (astBuiltin*)parameter->baseType;
-                    if (builtin->type == kKeyword_void && parameter->name.size()) {
+                    if (builtin->type == kKeyword_void && !strnil(parameter->name)) {
                         fatal("`void' parameter cannot be named");
                         return 0;
                     }
@@ -1390,7 +1419,7 @@ CHECK_RETURN astFunction *parser::parseFunction(const topLevel &parse) {
 
     // "It is a compile-time or link-time error to declare or define a function main with any other parameters or
     //  return type."
-    if (function->name == "main") {
+    if (!strcmp(function->name, "main")) {
         if (!function->parameters.empty()) {
             fatal("`main' cannot have parameters");
             return 0;
@@ -1482,7 +1511,7 @@ CHECK_RETURN astConstructorCall *parser::parseConstructorCall() {
 
 CHECK_RETURN astFunctionCall *parser::parseFunctionCall() {
     astFunctionCall *expression = GC_NEW(astExpression) astFunctionCall();
-    expression->name = m_token.m_identifier;
+    expression->name = strnew(m_token.asIdentifier);
     if (!next()) // skip identifier
         return 0;
     if (!isOperator(kOperator_paranthesis_begin)) {
@@ -1561,15 +1590,15 @@ astBinaryExpression *parser::createExpression() {
     }
 }
 
-astType *parser::findType(const std::string &) {
+astType *parser::findType(const char *) {
     return 0;
 }
 
-astVariable *parser::findVariable(const std::string &identifier) {
+astVariable *parser::findVariable(const char *identifier) {
     for (size_t scopeIndex = m_scopes.size(); scopeIndex > 0; scopeIndex--) {
         scope &s = m_scopes[scopeIndex - 1];
         for (size_t variableIndex = 0; variableIndex < s.size(); variableIndex++) {
-            if (s[variableIndex]->name == identifier)
+            if (!strcmp(s[variableIndex]->name, identifier))
                 return s[variableIndex];
         }
     }
@@ -1577,7 +1606,7 @@ astVariable *parser::findVariable(const std::string &identifier) {
 }
 
 const char *parser::error() const {
-    return m_error.c_str();
+    return m_error;
 }
 
 }

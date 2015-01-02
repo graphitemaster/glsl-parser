@@ -31,6 +31,12 @@ astType::astType(bool builtin)
 {
 }
 
+astStruct::astStruct()
+    : astType(false)
+    , name(0)
+{
+}
+
 astBuiltin::astBuiltin(int type)
     : astType(true)
     , type(type)
@@ -38,7 +44,8 @@ astBuiltin::astBuiltin(int type)
 }
 
 astVariable::astVariable(int type)
-    : baseType(0)
+    : name(0)
+    , baseType(0)
     , isArray(false)
     , isPrecise(false)
     , type(type)
@@ -94,7 +101,15 @@ astDeclarationStatement::astDeclarationStatement()
 }
 
 astLayoutQualifier::astLayoutQualifier()
-    : initialValue(0)
+    : name(0)
+    , initialValue(0)
+{
+}
+
+astFunction::astFunction()
+    : returnType(0)
+    , name(0)
+    , isPrototype(false)
 {
 }
 
@@ -233,6 +248,7 @@ astVariableIdentifier::astVariableIdentifier(astVariable *variable)
 astFieldOrSwizzle::astFieldOrSwizzle()
     : astExpression(kFieldOrSwizzle)
     , operand(0)
+    , name(0)
 {
 }
 
@@ -245,6 +261,7 @@ astArraySubscript::astArraySubscript()
 
 astFunctionCall::astFunctionCall()
     : astExpression(astExpression::kFunctionCall)
+    , name(0)
 {
 }
 

@@ -1,7 +1,7 @@
-#include <vector>
+#include <stdio.h>  // fread, fclose, fprintf, stderr
+#include <string.h> // strcmp, memcpy
 
-#include <stdio.h>
-#include <string.h>
+#include <vector>
 
 #include "parser.h"
 
@@ -73,12 +73,12 @@ static void printVariable(astVariable *variable, bool nameOnly = false) {
         print("precise ");
 
     if (nameOnly) {
-        print("%s", variable->name.c_str());
+        print("%s", variable->name);
         return;
     }
 
     printType(variable->baseType);
-    print(" %s", variable->name.c_str());
+    print(" %s", variable->name);
 
     if (nameOnly)
         return;
@@ -158,7 +158,7 @@ static void printGlobalVariable(astGlobalVariable *variable) {
         print("layout (");
         for (size_t i = 0; i < qualifiers.size(); i++) {
             astLayoutQualifier *qualifier = qualifiers[i];
-            print("%s", qualifier->name.c_str());
+            print("%s", qualifier->name);
             if (qualifier->initialValue) {
                 print(" = ");
                 printExpression(qualifier->initialValue);
@@ -205,7 +205,7 @@ static void printVariableIdentifier(astVariableIdentifier *expression) {
 
 static void printFieldOrSwizzle(astFieldOrSwizzle *expression) {
     printExpression(expression->operand);
-    print(".%s", expression->name.c_str());
+    print(".%s", expression->name);
 }
 
 static void printArraySubscript(astArraySubscript *expression) {
@@ -216,7 +216,7 @@ static void printArraySubscript(astArraySubscript *expression) {
 }
 
 static void printFunctionCall(astFunctionCall *expression) {
-    print("%s(", expression->name.c_str());
+    print("%s(", expression->name);
     for (size_t i = 0; i < expression->parameters.size(); i++) {
         printExpression(expression->parameters[i]);
         if (i != expression->parameters.size() - 1)
@@ -496,15 +496,15 @@ static void printFunctionParameter(astFunctionParameter *parameter) {
     printMemory(parameter->memory);
     printPrecision(parameter->precision);
     printType(parameter->baseType);
-    if (parameter->name.size())
-        print(" %s", parameter->name.c_str());
+    if (parameter->name)
+        print(" %s", parameter->name);
     if (parameter->isArray)
         printArraySize(parameter->arraySizes);
 }
 
 static void printFunction(astFunction *function) {
     printType(function->returnType);
-    print(" %s(", function->name.c_str());
+    print(" %s(", function->name);
     for (size_t i = 0; i < function->parameters.size(); i++)
         printFunctionParameter(function->parameters[i]);
     print(")");
@@ -578,7 +578,7 @@ int main(int argc, char **argv) {
     }
 
     for (size_t i = 0; i < sources.size(); i++) {
-        std::string contents;
+        std::vector<char> contents;
         // Read contents of file
         if (sources[i].file != stdin) {
             fseek(sources[i].file, 0, SEEK_END);
@@ -589,10 +589,13 @@ int main(int argc, char **argv) {
         } else {
             char buffer[1024];
             int c;
-            while ((c = fread(buffer, 1, sizeof(buffer), stdin)))
-                contents.append(buffer, c);
+            while ((c = fread(buffer, 1, sizeof(buffer), stdin))) {
+                contents.reserve(contents.size() + c);
+                contents.insert(contents.end(), buffer, buffer + c);
+            }
         }
-        parser p(contents, sources[i].fileName);
+        contents.push_back('\0');
+        parser p(&contents[0], sources[i].fileName);
         astTU *tu = p.parse(sources[i].shaderType);
         if (tu) {
             printTU(tu);

@@ -1,6 +1,8 @@
 #ifndef LEXER_HDR
 #define LEXER_HDR
-#include <string>
+#include <stddef.h> // size_t
+
+#include <vector>
 
 namespace glsl {
 
@@ -47,14 +49,16 @@ struct operatorInfo {
 
 struct token {
     int precedence() const;
+
 private:
+    token();
     friend struct lexer;
     friend struct parser;
     int m_type;
     int m_keyword;
     int m_operator;
-    std::string m_identifier;
     union {
+        char *asIdentifier;
         int asInt;
         unsigned asUnsigned;
         float asFloat;
@@ -74,7 +78,7 @@ private:
 };
 
 struct lexer {
-    lexer(const std::string &data);
+    lexer(const char *data);
 
     token read();
     token peek();
@@ -97,14 +101,14 @@ protected:
     void read(token &out);
     void read(token &out, bool);
 
-    std::string readNumeric(bool isOctal, bool isHex);
+    std::vector<char> readNumeric(bool isOctal, bool isHex);
 
 private:
+    const char *m_data;
+    size_t m_length;
+    const char *m_error;
     location m_location;
     location m_backup;
-
-    std::string m_data;
-    std::string m_error;
 };
 
 inline size_t lexer::position() const {

@@ -13,7 +13,8 @@ SOURCES = \
 	ast.cpp \
 	lexer.cpp \
 	parser.cpp \
-	main.cpp
+	main.cpp \
+	util.cpp
 
 OBJECTS = $(SOURCES:.cpp=.o)
 

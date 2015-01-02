@@ -39,13 +39,12 @@ struct topLevel {
     bool isInvariant;
     bool isPrecise;
     bool isArray;
-    std::string name;
+    char *name;
 };
-
 
 struct parser {
     ~parser();
-    parser(const std::string &source, const char *fileName);
+    parser(const char *source, const char *fileName);
     CHECK_RETURN astTU *parse(int type);
 
     const char *error() const;
@@ -126,8 +125,8 @@ protected:
 
     astBinaryExpression *createExpression();
 
-    astType *findType(const std::string &identifier);
-    astVariable *findVariable(const std::string &identifier);
+    astType *findType(const char *identifier);
+    astVariable *findVariable(const char *identifier);
 
 private:
     typedef std::vector<astVariable *> scope;
@@ -137,10 +136,31 @@ private:
     token m_token;
     std::vector<scope> m_scopes;
     std::vector<astBuiltin*> m_builtins;
-    std::string m_error;
+    char *m_error;
+    char *m_oom;
     const char *m_fileName;
 
+    void strdel(char **what) {
+        if (!*what)
+            return;
+        free(*what);
+        *what = 0;
+    }
+
+    char *strnew(const char *what) {
+        size_t length = strlen(what) + 1;
+        char *copy = (char*)malloc(length);
+        memcpy(copy, what, length);
+        m_strings.push_back(copy);
+        return copy;
+    }
+
+    bool strnil(const char *what) {
+        return !what || !*what;
+    }
+
     std::vector<astMemory> m_memory; // Memory of AST held here
+    std::vector<char *> m_strings; // Memory of strings held here
 };
 
 }

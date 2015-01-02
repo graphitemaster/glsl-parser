@@ -28,7 +28,7 @@ Check out the superior diagnostics [here](EXAMPLE_ERRORS.md)
 
 ### Portable and embeddable
   * Written in portable C++03.
-    * Only uses *std::string* and *std::vector* from the standard library
+    * Only uses *std::vector* from the standard library
   * Exception free
   * Doesn't use virtual functions
   * Small (~90 KB)

@@ -1,9 +1,6 @@
 #ifndef AST_HDR
 #define AST_HDR
 #include <vector>    // std::vector
-#include <string>    // std::string
-#include <algorithm> // std::find
-
 #include <stdlib.h>  // malloc, free
 
 namespace glsl {
@@ -29,9 +26,10 @@ struct astMemory {
 // Nodes are to inherit from astNode or astCollector
 template <typename T>
 struct astNode {
-    void *operator new(size_t size, std::vector<astMemory> *collector) {
+    void *operator new(size_t size, std::vector<astMemory> *collector) throw() {
         void *data = malloc(size);
-        collector->push_back(astMemory((T*)data));
+        if (data)
+            collector->push_back(astMemory((T*)data));
         return data;
     }
 private:
@@ -76,7 +74,8 @@ struct astType : astNode<astType> {
 };
 
 struct astStruct : astType {
-    std::string name;
+    astStruct();
+    char *name;
 };
 
 struct astBuiltin : astType {
@@ -99,7 +98,7 @@ struct astVariable : astNode<astVariable> {
         kGlobal
     };
     astVariable(int type);
-    std::string name;
+    char *name;
     astType *baseType;
     bool isArray;
     bool isPrecise;
@@ -170,13 +169,14 @@ struct astGlobalVariable : astVariable {
 
 struct astLayoutQualifier : astNode<astLayoutQualifier> {
     astLayoutQualifier();
-    std::string name;
+    char *name;
     astConstantExpression *initialValue;
 };
 
 struct astFunction : astNode<astFunction> {
+    astFunction();
     astType *returnType;
-    std::string name;
+    char *name;
     std::vector<astFunctionParameter*> parameters;
     std::vector<astStatement*> statements;
     bool isPrototype;
@@ -358,7 +358,7 @@ struct astVariableIdentifier : astExpression {
 struct astFieldOrSwizzle : astExpression {
     astFieldOrSwizzle();
     astExpression *operand;
-    std::string name;
+    char *name;
 };
 
 struct astArraySubscript : astExpression {
@@ -369,7 +369,7 @@ struct astArraySubscript : astExpression {
 
 struct astFunctionCall : astExpression {
     astFunctionCall();
-    std::string name;
+    char *name;
     std::vector<astExpression*> parameters;
 };
 
