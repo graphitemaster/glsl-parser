@@ -148,6 +148,8 @@ private:
     }
 
     char *strnew(const char *what) {
+        if (!what)
+            return 0;
         size_t length = strlen(what) + 1;
         char *copy = (char*)malloc(length);
         memcpy(copy, what, length);

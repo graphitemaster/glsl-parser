@@ -798,8 +798,13 @@ CHECK_RETURN astExpression *parser::parseBinary(int lhsPrecedence, astExpression
 
         if (((astExpression*)expression)->type == astExpression::kAssign) {
             astExpression *find = lhs;
-            while (find->type == astExpression::kArraySubscript)
-                find = ((astArraySubscript*)find)->operand;
+            while (find->type == astExpression::kArraySubscript
+                || find->type == astExpression::kFieldOrSwizzle)
+            {
+                find = (find->type == astExpression::kArraySubscript)
+                    ? ((astArraySubscript*)find)->operand
+                    : ((astFieldOrSwizzle*)find)->operand;
+            }
             if (find->type != astExpression::kVariableIdentifier) {
                 fatal("not a valid lvalue");
                 return 0;
@@ -908,7 +913,7 @@ CHECK_RETURN astExpression *parser::parseUnary(endCondition end) {
             }
             astFieldOrSwizzle *expression = GC_NEW(astExpression) astFieldOrSwizzle();
             expression->operand = operand;
-            expression->name = strnew(peek.asIdentifier);
+            expression->name = strnew(m_token.asIdentifier);
             operand = expression;
         } else if (IS_OPERATOR(peek, kOperator_increment)) {
             if (!next()) return 0; // skip last
