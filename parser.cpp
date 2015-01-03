@@ -23,9 +23,9 @@ parser::~parser() {
 #define IS_TYPE(TOKEN, TYPE) \
     ((TOKEN).m_type == (TYPE))
 #define IS_KEYWORD(TOKEN, KEYWORD) \
-    (IS_TYPE((TOKEN), kType_keyword) && (TOKEN).m_keyword == (KEYWORD))
+    (IS_TYPE((TOKEN), kType_keyword) && (TOKEN).asKeyword == (KEYWORD))
 #define IS_OPERATOR(TOKEN, OPERATOR) \
-    (IS_TYPE((TOKEN), kType_operator) && (TOKEN).m_operator == (OPERATOR))
+    (IS_TYPE((TOKEN), kType_operator) && (TOKEN).asOperator == (OPERATOR))
 
 #define GC_NEW(X) new(&m_memory)
 
@@ -288,7 +288,7 @@ void parser::fatal(const char *fmt, ...) {
 bool parser::isBuiltin() const {
     if (!isType(kType_keyword))
         return false;
-    switch (m_token.m_keyword) {
+    switch (m_token.asKeyword) {
     #include "lexemes.h"
         return true;
     default:
@@ -1471,14 +1471,14 @@ astBuiltin *parser::parseBuiltin() {
         return 0;
     }
 
-    switch (m_token.m_keyword) {
+    switch (m_token.asKeyword) {
     #include "lexemes.h"
         for (size_t i = 0; i < m_builtins.size(); i++) {
-            if (m_builtins[i]->type == m_token.m_keyword) {
+            if (m_builtins[i]->type == m_token.asKeyword) {
                 return m_builtins[i];
             }
         }
-        m_builtins.push_back(GC_NEW(astType) astBuiltin(m_token.m_keyword));
+        m_builtins.push_back(GC_NEW(astType) astBuiltin(m_token.asKeyword));
         return m_builtins.back();
         break;
     default:
@@ -1556,7 +1556,7 @@ astBinaryExpression *parser::createExpression() {
         return 0;
     }
 
-    switch (m_token.m_operator) {
+    switch (m_token.asOperator) {
     case kOperator_multiply:
     case kOperator_divide:
     case kOperator_modulus:
@@ -1575,7 +1575,7 @@ astBinaryExpression *parser::createExpression() {
     case kOperator_logical_and:
     case kOperator_logical_xor:
     case kOperator_logical_or:
-        return GC_NEW(astExpression) astOperationExpression(m_token.m_operator);
+        return GC_NEW(astExpression) astOperationExpression(m_token.asOperator);
     case kOperator_assign:
     case kOperator_add_assign:
     case kOperator_sub_assign:
@@ -1587,7 +1587,7 @@ astBinaryExpression *parser::createExpression() {
     case kOperator_bit_and_assign:
     case kOperator_bit_xor_assign:
     case kOperator_bit_or_assign:
-        return GC_NEW(astExpression) astAssignmentExpression(m_token.m_operator);
+        return GC_NEW(astExpression) astAssignmentExpression(m_token.asOperator);
     case kOperator_comma:
         return GC_NEW(astExpression) astSequenceExpression();
     default:

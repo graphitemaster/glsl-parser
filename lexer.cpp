@@ -29,7 +29,9 @@ token::token() {
 }
 
 int token::precedence() const {
-    return kOperators[m_operator].precedence;
+    if (m_type == kType_operator)
+        return kOperators[asOperator].precedence;
+    return -1;
 }
 
 /// location
@@ -219,7 +221,7 @@ void lexer::read(token &out) {
             free(out.asIdentifier);
             out.asIdentifier = 0;
             out.m_type = kType_keyword;
-            out.m_keyword = int(i);
+            out.asKeyword = int(i);
             break;
         }
     } else {
@@ -255,25 +257,25 @@ void lexer::read(token &out) {
         // Operators
         case '.':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_dot;
+            out.asOperator = kOperator_dot;
             break;
         case '+':
             out.m_type = kType_operator;
             if (ch1 == '+')
-                out.m_operator = kOperator_increment;
+                out.asOperator = kOperator_increment;
             else if (ch1 == '=')
-                out.m_operator = kOperator_add_assign;
+                out.asOperator = kOperator_add_assign;
             else
-                out.m_operator = kOperator_plus;
+                out.asOperator = kOperator_plus;
             break;
         case '-':
             out.m_type = kType_operator;
             if (ch1 == '-')
-                out.m_operator = kOperator_decrement;
+                out.asOperator = kOperator_decrement;
             else if (ch1 == '=')
-                out.m_operator = kOperator_sub_assign;
+                out.asOperator = kOperator_sub_assign;
             else
-                out.m_operator = kOperator_minus;
+                out.asOperator = kOperator_minus;
             break;
         case '/':
             if (ch1 == '/') {
@@ -302,120 +304,120 @@ void lexer::read(token &out) {
                 out.m_type = kType_comment;
             } else if (ch1 == '=') {
                 out.m_type = kType_operator;
-                out.m_operator = kOperator_divide_assign;
+                out.asOperator = kOperator_divide_assign;
             } else {
                 out.m_type = kType_operator;
-                out.m_operator = kOperator_divide;
+                out.asOperator = kOperator_divide;
             }
             break;
         case '*':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_operator = kOperator_multiply_assign;
+                out.asOperator = kOperator_multiply_assign;
             else
-                out.m_operator = kOperator_multiply;
+                out.asOperator = kOperator_multiply;
             break;
         case '%':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_operator = kOperator_modulus_assign;
+                out.asOperator = kOperator_modulus_assign;
             else
-                out.m_operator = kOperator_modulus;
+                out.asOperator = kOperator_modulus;
             break;
         case '<':
             out.m_type = kType_operator;
             if (ch1 == '<' && ch2 == '=')
-                out.m_operator = kOperator_shift_left_assign;
+                out.asOperator = kOperator_shift_left_assign;
             else if (ch1 == '<')
-                out.m_operator = kOperator_shift_left;
+                out.asOperator = kOperator_shift_left;
             else if (ch1 == '=')
-                out.m_operator = kOperator_less_equal;
+                out.asOperator = kOperator_less_equal;
             else
-                out.m_operator = kOperator_less;
+                out.asOperator = kOperator_less;
             break;
         case '>':
             out.m_type = kType_operator;
             if (ch1 == '>' && ch2 == '=')
-                out.m_operator = kOperator_shift_right_assign;
+                out.asOperator = kOperator_shift_right_assign;
             else if (ch1 == '>')
-                out.m_operator = kOperator_shift_right;
+                out.asOperator = kOperator_shift_right;
             else if (ch1 == '=')
-                out.m_operator = kOperator_greater_equal;
+                out.asOperator = kOperator_greater_equal;
             else
-                out.m_operator = kOperator_greater;
+                out.asOperator = kOperator_greater;
             break;
         case '[':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_bracket_begin;
+            out.asOperator = kOperator_bracket_begin;
             break;
         case ']':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_bracket_end;
+            out.asOperator = kOperator_bracket_end;
             break;
         case '(':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_paranthesis_begin;
+            out.asOperator = kOperator_paranthesis_begin;
             break;
         case ')':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_paranthesis_end;
+            out.asOperator = kOperator_paranthesis_end;
             break;
         case '^':
             out.m_type = kType_operator;
             if (ch1 == '^')
-                out.m_operator = kOperator_logical_xor;
+                out.asOperator = kOperator_logical_xor;
             else if (ch1 == '=')
-                out.m_operator = kOperator_bit_xor_assign;
+                out.asOperator = kOperator_bit_xor_assign;
             else
-                out.m_operator = kOperator_bit_xor;
+                out.asOperator = kOperator_bit_xor;
             break;
         case '|':
             out.m_type = kType_operator;
             if (ch1 == '|')
-                out.m_operator = kOperator_logical_or;
+                out.asOperator = kOperator_logical_or;
             else if (ch1 == '=')
-                out.m_operator = kOperator_bit_or_assign;
+                out.asOperator = kOperator_bit_or_assign;
             else
-                out.m_operator = kOperator_bit_or;
+                out.asOperator = kOperator_bit_or;
             break;
         case '&':
             out.m_type = kType_operator;
             if (ch1 == '&')
-                out.m_operator = kOperator_logical_and;
+                out.asOperator = kOperator_logical_and;
             else if (ch1 == '=')
-                out.m_operator = kOperator_bit_and_assign;
+                out.asOperator = kOperator_bit_and_assign;
             else
-                out.m_operator = kOperator_bit_and;
+                out.asOperator = kOperator_bit_and;
             break;
         case '~':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_bit_not;
+            out.asOperator = kOperator_bit_not;
             break;
         case '=':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_operator = kOperator_equal;
+                out.asOperator = kOperator_equal;
             else
-                out.m_operator = kOperator_assign;
+                out.asOperator = kOperator_assign;
             break;
         case '!':
             out.m_type = kType_operator;
             if (ch1 == '=')
-                out.m_operator = kOperator_not_equal;
+                out.asOperator = kOperator_not_equal;
             else
-                out.m_operator = kOperator_logical_not;
+                out.asOperator = kOperator_logical_not;
             break;
         case ':':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_colon;
+            out.asOperator = kOperator_colon;
             break;
         case ',':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_comma;
+            out.asOperator = kOperator_comma;
             break;
         case '?':
             out.m_type = kType_operator;
-            out.m_operator = kOperator_questionmark;
+            out.asOperator = kOperator_questionmark;
             break;
         default:
             m_error = "invalid character encountered";
@@ -423,7 +425,7 @@ void lexer::read(token &out) {
         }
         // Skip whitespace for operator
         if (out.m_type == kType_operator)
-            m_location.advanceColumn(strlen(kOperators[out.m_operator].string));
+            m_location.advanceColumn(strlen(kOperators[out.asOperator].string));
     }
 }
 

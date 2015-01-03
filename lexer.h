@@ -55,11 +55,11 @@ private:
     friend struct lexer;
     friend struct parser;
     int m_type;
-    int m_keyword;
-    int m_operator;
     union {
         char *asIdentifier;
         int asInt;
+        int asKeyword;
+        int asOperator;
         unsigned asUnsigned;
         float asFloat;
         double asDouble;
