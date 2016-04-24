@@ -1046,14 +1046,14 @@ CHECK_RETURN astSwitchStatement *parser::parseSwitchStatement() {
                 // "It is a compile-time error to have two case label constant-expression of equal value"
                 if (value->type == astExpression::kIntConstant) {
                     const int val = IVAL(value);
-                    if (find(seenInts.begin(), seenInts.end(), val) != seenInts.end()) {
+                    if (glsl::find(seenInts.begin(), seenInts.end(), val) != seenInts.end()) {
                         fatal("duplicate case label `%d'", val);
                         return 0;
                     }
                     seenInts.push_back(val);
                 } else if (value->type == astExpression::kUIntConstant) {
                     const unsigned int val = UVAL(value);
-                    if (find(seenUInts.begin(), seenUInts.end(), val) != seenUInts.end()) {
+                    if (glsl::find(seenUInts.begin(), seenUInts.end(), val) != seenUInts.end()) {
                         fatal("duplicate case label `%u'", val);
                         return 0;
                     }
