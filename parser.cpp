@@ -305,6 +305,12 @@ CHECK_RETURN astTU *parser::parse(int type) {
     m_scopes.push_back(scope());
     for (;;) {
         m_lexer.read(m_token, true);
+
+        if (m_lexer.error()) {
+            fatal("%s", m_lexer.error());
+            return 0;
+        }
+
         if (isType(kType_eof))
             break;
 
