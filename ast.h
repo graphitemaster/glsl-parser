@@ -320,7 +320,8 @@ struct astExpression : astNode<astExpression> {
         kPrefixDecrement,
         kSequence,
         kAssign,
-        kOperation
+        kOperation,
+        kTernary
     };
     int type;
 };
@@ -436,6 +437,13 @@ struct astAssignmentExpression : astBinaryExpression {
 struct astOperationExpression : astBinaryExpression {
     astOperationExpression(int operation);
     int operation;
+};
+
+struct astTernaryExpression : astExpression {
+    astTernaryExpression();
+    astExpression *condition;
+    astExpression *onTrue;
+    astExpression *onFalse;
 };
 
 }

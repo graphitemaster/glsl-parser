@@ -305,6 +305,14 @@ static void printOperation(astOperationExpression *expression) {
     printExpression(expression->operand2);
 }
 
+static void printTernary(astTernaryExpression *expression) {
+    printExpression(expression->condition);
+    printf(" ? ");
+    printExpression(expression->onTrue);
+    printf(" : ");
+    printExpression(expression->onFalse);
+}
+
 static void printExpression(astExpression *expression) {
     switch (expression->type) {
     case astExpression::kIntConstant:
@@ -349,6 +357,8 @@ static void printExpression(astExpression *expression) {
         return printSequence((astSequenceExpression*)expression);
     case astExpression::kOperation:
         return printOperation((astOperationExpression*)expression);
+    case astExpression::kTernary:
+        return printTernary((astTernaryExpression*)expression);
     }
 }
 

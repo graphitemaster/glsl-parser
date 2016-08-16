@@ -341,4 +341,12 @@ astOperationExpression::astOperationExpression(int operation)
 {
 }
 
+astTernaryExpression::astTernaryExpression()
+    : astExpression(astExpression::kTernary)
+    , condition(0)
+    , onTrue(0)
+    , onFalse(0)
+{
+}
+
 }

@@ -796,6 +796,7 @@ CHECK_RETURN astExpression *parser::parseBinary(int lhsPrecedence, astExpression
         astBinaryExpression *expression = createExpression();
         if (!next())
             return 0;
+
         astExpression *rhs = parseUnary(end);
         if (!rhs)
             return 0;
@@ -944,6 +945,22 @@ CHECK_RETURN astExpression *parser::parseUnary(endCondition end) {
             if (isConstant(expression->index)) {
                 if (!(expression->index = evaluate(expression->index)))
                     return 0;
+            }
+            operand = expression;
+        } else if (IS_OPERATOR(peek, kOperator_questionmark)) {
+            if (!next()) return 0; // skip last
+            if (!next()) return 0; // skip '?'
+            astTernaryExpression *expression = GC_NEW(astExpression) astTernaryExpression();
+            expression->condition = operand;
+            expression->onTrue = parseExpression(kEndConditionColon);
+            if (!isOperator(kOperator_colon)) {
+                fatal("expected `:' for else case in ternary statement");
+                return 0;
+            }
+            if (!next()) return 0; // skip ':'
+            if (!(expression->onFalse = parseUnary(end))) {
+                fatal("expected expression after `:' in ternary statement");
+                return 0;
             }
             operand = expression;
         } else {

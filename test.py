@@ -1,7 +1,7 @@
 from glob import glob
 import os
 import subprocess
-from itertools import zip_longest
+from itertools import izip_longest as zip_longest
 
 def main():
     test_dir_name = 'tests'
