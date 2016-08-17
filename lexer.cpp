@@ -175,12 +175,21 @@ void lexer::read(token &out) {
 
         numeric.push_back('\0');
         int base = isHexish ? 16 : (isOctalish ? 8 : 10);
+        char *error;
         if (isFloat) {
             out.m_type = kType_constant_float;
-            out.asFloat = strtof(&numeric[0], 0);
+            out.asFloat = strtof(&numeric[0], &error);
+            if (error == &numeric[0]) {
+                m_error = "invalid numeric literal";
+                return;
+            }
         } else if (isDouble) {
             out.m_type = kType_constant_double;
-            out.asDouble = strtof(&numeric[0], 0);
+            out.asDouble = strtod(&numeric[0], &error);
+            if (error == &numeric[0]) {
+                m_error = "invalid numeric literal";
+                return;
+            }
         } else if (isUnsigned) {
             out.m_type = kType_constant_uint;
             unsigned long long value = strtoull(&numeric[0], 0, base);
