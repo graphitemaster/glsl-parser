@@ -1,4 +1,3 @@
-#include <float.h>
 #include <stdio.h>  // fread, fclose, fprintf, stderr
 #include <string.h> // strcmp, memcpy
 
@@ -51,7 +50,7 @@ static void printUIntConstant(astUIntConstant *expression) {
 
 static void printFloatConstant(astFloatConstant *expression) {
     char format[1024];
-    snprintf(format, sizeof format - 2, "%g", expression->value);
+    snprintf(format, sizeof format, "%g", expression->value);
     if (!strchr(format, '.'))
         print("%g.0", expression->value);
     else
