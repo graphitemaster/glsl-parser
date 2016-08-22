@@ -76,7 +76,7 @@ static inline bool isSpace(int ch) {
 lexer::lexer(const char *string)
     : m_data(string)
     , m_length(0)
-    , m_error(0)
+    , m_error(NULL)
 {
     if (m_data)
         m_length = strlen(m_data);
@@ -470,7 +470,7 @@ token lexer::peek() {
 void lexer::read(token &out, bool) {
     do {
         read(out);
-    } while (out.m_type == kType_whitespace || out.m_type == kType_comment);
+    } while ((out.m_type == kType_whitespace || out.m_type == kType_comment) && NULL == m_error);
 }
 
 const char *lexer::error() const {
