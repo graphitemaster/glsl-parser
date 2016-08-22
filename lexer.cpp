@@ -470,7 +470,7 @@ token lexer::peek() {
 void lexer::read(token &out, bool) {
     do {
         read(out);
-    } while (out.m_type == kType_whitespace || out.m_type == kType_comment);
+    } while ((out.m_type == kType_whitespace || out.m_type == kType_comment) && !m_error);
 }
 
 const char *lexer::error() const {
