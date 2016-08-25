@@ -44,6 +44,8 @@ struct astGlobalVariable;
 struct astExpression;
 struct astLayoutQualifier;
 struct astStatement;
+struct astStruct;
+struct astVariable;
 
 struct astTU {
     astTU(int type);
@@ -58,8 +60,8 @@ struct astTU {
     };
 
     std::vector<astFunction*> functions;
-    std::vector<astType*> types;
     std::vector<astGlobalVariable*> globals;
+    std::vector<astStruct*> structures;
 
     int type;
 
@@ -73,14 +75,15 @@ struct astType : astNode<astType> {
     bool builtin;
 };
 
-struct astStruct : astType {
-    astStruct();
-    char *name;
-};
-
 struct astBuiltin : astType {
     astBuiltin(int type);
     int type; // kKeyword_*
+};
+
+struct astStruct : astType {
+    astStruct();
+    char *name;
+    std::vector<astVariable*> fields;
 };
 
 typedef astExpression astConstantExpression;
@@ -95,7 +98,8 @@ struct astVariable : astNode<astVariable> {
     enum {
         kFunction,
         kParameter,
-        kGlobal
+        kGlobal,
+        kField
     };
     astVariable(int type);
     char *name;

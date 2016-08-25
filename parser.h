@@ -27,6 +27,7 @@ struct topLevel {
         , isArray(false)
     {
     }
+
     int storage;
     int auxiliary;
     int memory;
@@ -36,6 +37,7 @@ struct topLevel {
     astConstantExpression *initialValue;
     std::vector<astConstantExpression*> arraySizes;
     std::vector<astLayoutQualifier*> layoutQualifiers;
+    std::vector<astStruct*> structures;
     bool isInvariant;
     bool isPrecise;
     bool isArray;
@@ -127,7 +129,7 @@ protected:
 
     astType *findType(const char *identifier);
     astVariable *findVariable(const char *identifier);
-
+    astType* getType(astExpression *expression);
 private:
     typedef std::vector<astVariable *> scope;
 

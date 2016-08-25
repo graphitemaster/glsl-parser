@@ -37,7 +37,9 @@ static void printBuiltin(astBuiltin *builtin) {
 
 static void printType(astType *type) {
     if (type->builtin)
-        return printBuiltin((astBuiltin*)type);
+        printBuiltin((astBuiltin*)type);
+    else
+        print("%s", ((astStruct*)type)->name);
 }
 
 static void printIntConstant(astIntConstant *expression) {
@@ -533,7 +535,21 @@ static void printFunction(astFunction *function) {
     print("}\n");
 }
 
+static void printStructure(astStruct *structure) {
+    print("struct ");
+    if (structure->name)
+        print("%s ", structure->name);
+    print("{\n");
+    for (size_t i = 0; i < structure->fields.size(); i++) {
+        printVariable(structure->fields[i]);
+        print(";\n");
+    }
+    print("};\n");
+}
+
 static void printTU(astTU *tu) {
+    for (size_t i = 0; i < tu->structures.size(); i++)
+        printStructure(tu->structures[i]);
     for (size_t i = 0; i < tu->globals.size(); i++)
         printGlobalVariable(tu->globals[i]);
     for (size_t i = 0; i < tu->functions.size(); i++)

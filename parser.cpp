@@ -349,7 +349,7 @@ CHECK_RETURN astTU *parser::parse(int type) {
         } else if (isType(kType_whitespace)) {
             continue; // whitespace tokens will be used later for the preprocessor
         } else {
-            fatal("syntax error");
+            fatal("syntax error at top level %d", m_token.asKeyword);
             return 0;
         }
     }
@@ -594,8 +594,10 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
     std::vector<topLevel> items;
     while (!isBuiltin() && !isType(kType_identifier)) {
         topLevel next;
+
         if (continuation)
             next = *continuation;
+
         if (!parseStorage(next))       return false;
         if (!parseAuxiliary(next))     return false;
         if (!parseInterpolation(next)) return false;
@@ -604,11 +606,27 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
         if (!parsePrecise(next))       return false;
         if (!parseMemory(next))        return false;
         if (!parseLayout(next))        return false;
-        items.push_back(next);
+
+        if (isKeyword(kKeyword_struct)) {
+            astStruct *unique = parseStruct();
+            if (!unique)
+                return false;
+            m_ast->structures.push_back(unique);
+            if (isType(kType_semicolon))
+            {
+                //level = topLevel();
+                return true;
+            } else {
+                level.type = unique;
+            }
+        } else {
+            items.push_back(next);
+        }
     }
 
     if (continuation)
         level = *continuation;
+
     for (size_t i = 0; i < items.size(); i++) {
         topLevel &next = items[i];
         const int storage = level.storage != -1 ? level.storage : next.storage;
@@ -688,7 +706,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
         return false;
     }
 
-    if (!continuation) {
+    if (!continuation && !level.type) {
         if (isType(kType_identifier)) {
             level.type = findType(m_token.asIdentifier);
             if (!next()) // skip identifier
@@ -769,21 +787,59 @@ CHECK_RETURN bool parser::parseTopLevel(std::vector<topLevel> &items) {
     topLevel item;
     if (!parseTopLevelItem(item))
         return false;
-    items.push_back(item);
-    while (isOperator(kOperator_comma)) {
+    if (item.type)
+        items.push_back(item);
+    while (items.size() && isOperator(kOperator_comma)) {
         if (!next())
             return false; // skip ','
         topLevel nextItem;
         if (!parseTopLevelItem(nextItem, &items.front()))
             return false;
-        items.push_back(nextItem);
+        if (nextItem.type)
+            items.push_back(nextItem);
     }
     return true;
 }
 
 CHECK_RETURN astStruct *parser::parseStruct() {
-    fatal("not implemented: structure parsing");
-    return 0;
+    if (!next()) return 0; // skip struct
+
+    astStruct *unique = GC_NEW(astType) astStruct;
+
+    if (isType(kType_identifier)) {
+        unique->name = strnew(m_token.asIdentifier);
+        if (!next()) return 0; // skip identifier
+    }
+
+    if (!isType(kType_scope_begin)) {
+        fatal("expected '{' for structure definition");
+        return 0;
+    }
+
+    if (!next()) return 0; // skip '{'
+
+    std::vector<topLevel> items;
+    while (!isType(kType_scope_end)) {
+        if (!parseTopLevel(items))
+            return 0;
+        if (!next())
+            return 0;
+    }
+
+    for (size_t i = 0; i < items.size(); i++) {
+        topLevel &parse = items[i];
+        astVariable *field = GC_NEW(astVariable) astVariable(astVariable::kField);
+        field->baseType = parse.type;
+        field->name = strnew(parse.name);
+        field->isPrecise = parse.isPrecise;
+        field->isArray = parse.isArray;
+        field->arraySizes = parse.arraySizes;
+        unique->fields.push_back(field);
+    }
+
+    if (!next()) return 0; // skip '}'
+
+    return unique;
 }
 
 CHECK_RETURN astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCondition end) {
@@ -901,7 +957,30 @@ CHECK_RETURN astExpression *parser::parseUnaryPrefix(endCondition condition) {
     } else if (condition == kEndConditionBracket) {
         return 0;
     }
-    fatal("syntax error");
+    fatal("syntax error during unary prefix");
+    return 0;
+}
+
+astType* parser::getType(astExpression *expression)
+{
+    switch (expression->type)
+    {
+    case astExpression::kVariableIdentifier:
+        return ((astVariableIdentifier*)expression)->variable->baseType;
+    case astExpression::kFieldOrSwizzle:
+        return getType(((astFieldOrSwizzle*)expression)->operand);
+    case astExpression::kArraySubscript:
+        return getType(((astArraySubscript*)expression)->operand);
+    case astExpression::kFunctionCall:
+        for (size_t i = 0; i < m_ast->functions.size(); i++) {
+            if (strcmp(m_ast->functions[i]->name, ((astFunctionCall*)expression)->name))
+                continue;
+            return m_ast->functions[i]->returnType;
+        }
+        break;
+    case astExpression::kConstructorCall:
+        return ((astConstructorCall*)expression)->type;
+    }
     return 0;
 }
 
@@ -919,6 +998,23 @@ CHECK_RETURN astExpression *parser::parseUnary(endCondition end) {
                 return 0;
             }
             astFieldOrSwizzle *expression = GC_NEW(astExpression) astFieldOrSwizzle();
+            // check to see if the field exists
+            if (((astType*)operand)->builtin) {
+                astStruct *type = (astStruct*)getType(operand);
+                if (type) {
+                    astVariable *field = 0;
+                    for (size_t i = 0; i < type->fields.size(); i++) {
+                        if (strcmp(type->fields[i]->name, m_token.asIdentifier))
+                            continue;
+                        field = type->fields[i];
+                        break;
+                    }
+                    if (!field) {
+                        fatal("field `%s' does not exist in structure `%s'", m_token.asIdentifier, type->name);
+                        return 0;
+                    }
+                }
+            }
             expression->operand = operand;
             expression->name = strnew(m_token.asIdentifier);
             operand = expression;
@@ -1319,7 +1415,7 @@ CHECK_RETURN astDeclarationStatement *parser::parseDeclarationStatement(endCondi
                     return 0;
             }
         } else {
-            fatal("syntax error");
+            fatal("syntax error during declaration statement");
             return 0;
         }
     }
@@ -1618,7 +1714,12 @@ astBinaryExpression *parser::createExpression() {
     }
 }
 
-astType *parser::findType(const char *) {
+astType *parser::findType(const char *name) {
+    for (size_t i = 0; i < m_ast->structures.size(); i++) {
+        if (strcmp(m_ast->structures[i]->name, name))
+            continue;
+        return (astType*)m_ast->structures[i];
+    }
     return 0;
 }
 
