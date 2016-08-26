@@ -3,6 +3,6 @@ float a = 0;
 float b = 0;
 float c = 0;
 float d = 0;
-float w = a ? a, b : b, c;
-float z = a ? b ? c : d : w;
+float w = ((a ? (a, b) : b), c);
+float z = (a ? (b ? c : d) : w);
 }
