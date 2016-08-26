@@ -614,7 +614,6 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
             m_ast->structures.push_back(unique);
             if (isType(kType_semicolon))
             {
-                //level = topLevel();
                 return true;
             } else {
                 level.type = unique;

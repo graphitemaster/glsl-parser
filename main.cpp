@@ -301,23 +301,29 @@ static void printAssign(astAssignmentExpression *expression) {
 }
 
 static void printSequence(astSequenceExpression *expression) {
+    printf("(");
     printExpression(expression->operand1);
     printf(", ");
     printExpression(expression->operand2);
+    printf(")");
 }
 
 static void printOperation(astOperationExpression *expression) {
+    printf("(");
     printExpression(expression->operand1);
     printf(" %s ", kOperators[expression->operation]);
     printExpression(expression->operand2);
+    printf(")");
 }
 
 static void printTernary(astTernaryExpression *expression) {
+    printf("(");
     printExpression(expression->condition);
     printf(" ? ");
     printExpression(expression->onTrue);
     printf(" : ");
     printExpression(expression->onFalse);
+    printf(")");
 }
 
 static void printExpression(astExpression *expression) {
