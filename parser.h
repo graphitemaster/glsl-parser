@@ -22,6 +22,7 @@ struct topLevel {
         , interpolation(-1)
         , type(0)
         , initialValue(0)
+        , arrayOnTypeOffset(0)
         , isInvariant(false)
         , isPrecise(false)
         , isArray(false)
@@ -36,6 +37,7 @@ struct topLevel {
     astType *type;
     astConstantExpression *initialValue;
     std::vector<astConstantExpression*> arraySizes;
+    size_t arrayOnTypeOffset;
     std::vector<astLayoutQualifier*> layoutQualifiers;
     std::vector<astStruct*> structures;
     bool isInvariant;

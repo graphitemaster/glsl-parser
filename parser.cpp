@@ -627,8 +627,12 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
         }
     }
 
-    if (continuation)
+    if (continuation) {
         level = *continuation;
+        // erase anything that is not an array size on the type, e.g
+        // int[2] a[2], b; should produce: int a[2][2]; int b[2];
+        level.arraySizes.erase(level.arraySizes.begin() + level.arrayOnTypeOffset, level.arraySizes.end());
+    }
 
     for (size_t i = 0; i < items.size(); i++) {
         topLevel &next = items[i];
@@ -728,6 +732,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
                 if (!arraySize)
                     return false;
                 level.arraySizes.insert(level.arraySizes.begin(), arraySize);
+                level.arrayOnTypeOffset++;
                 if (!next()) // skip ']'
                     return false;
             }
