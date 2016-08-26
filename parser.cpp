@@ -593,8 +593,12 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
 CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuation) {
     std::vector<topLevel> items;
     while (!isBuiltin() && !isType(kType_identifier)) {
-        topLevel next;
+        // If this is an empty file don't get caught in this loop indefinitely
+        token peek = m_lexer.peek();
+        if (IS_TYPE(peek, kType_eof))
+            return false;
 
+        topLevel next;
         if (continuation)
             next = *continuation;
 
@@ -1257,6 +1261,10 @@ CHECK_RETURN astBreakStatement *parser::parseBreakStatement() {
     astBreakStatement *statement = GC_NEW(astStatement) astBreakStatement();
     if (!next())
         return 0; // skip 'break'
+    if (!isType(kType_semicolon)) {
+        fatal("expected semicolon after break statement");
+        return 0;
+    }
     return statement;
 }
 
@@ -1264,6 +1272,10 @@ CHECK_RETURN astDiscardStatement *parser::parseDiscardStatement() {
     astDiscardStatement *statement = GC_NEW(astStatement) astDiscardStatement();
     if (!next()) // skip 'discard'
         return 0;
+    if (!isType(kType_semicolon)) {
+        fatal("expected semicolon after discard statement");
+        return 0;
+    }
     return statement;
 }
 
@@ -1274,6 +1286,10 @@ CHECK_RETURN astReturnStatement *parser::parseReturnStatement() {
     if (!isType(kType_semicolon)) {
         if (!(statement->expression = parseExpression(kEndConditionSemicolon)))
             return 0;
+        if (!isType(kType_semicolon)) {
+            fatal("expected semicolon after return statement");
+            return 0;
+        }
     }
     return statement;
 }
