@@ -1,7 +1,7 @@
 #ifndef AST_HDR
 #define AST_HDR
-#include <vector>    // std::vector
-#include <stdlib.h>  // malloc, free
+#include <stdlib.h> // free, malloc, size_t
+#include "util.h"
 
 namespace glsl {
 
@@ -26,7 +26,7 @@ struct astMemory {
 // Nodes are to inherit from astNode or astCollector
 template <typename T>
 struct astNode {
-    void *operator new(size_t size, std::vector<astMemory> *collector) throw() {
+    void *operator new(size_t size, vector<astMemory> *collector) throw() {
         void *data = malloc(size);
         if (data)
             collector->push_back(astMemory((T*)data));
@@ -59,9 +59,9 @@ struct astTU {
         kFragment
     };
 
-    std::vector<astFunction*> functions;
-    std::vector<astGlobalVariable*> globals;
-    std::vector<astStruct*> structures;
+    vector<astFunction*> functions;
+    vector<astGlobalVariable*> globals;
+    vector<astStruct*> structures;
 
     int type;
 
@@ -83,7 +83,7 @@ struct astBuiltin : astType {
 struct astStruct : astType {
     astStruct();
     char *name;
-    std::vector<astVariable*> fields;
+    vector<astVariable*> fields;
 };
 
 typedef astExpression astConstantExpression;
@@ -107,7 +107,7 @@ struct astVariable : astNode<astVariable> {
     bool isArray;
     bool isPrecise;
     int type;
-    std::vector<astConstantExpression *> arraySizes;
+    vector<astConstantExpression *> arraySizes;
 };
 
 struct astFunctionVariable : astVariable {
@@ -168,7 +168,7 @@ struct astGlobalVariable : astVariable {
     int interpolation;
     bool isInvariant;
     astConstantExpression *initialValue;
-    std::vector<astLayoutQualifier*> layoutQualifiers;
+    vector<astLayoutQualifier*> layoutQualifiers;
 };
 
 struct astLayoutQualifier : astNode<astLayoutQualifier> {
@@ -181,8 +181,8 @@ struct astFunction : astNode<astFunction> {
     astFunction();
     astType *returnType;
     char *name;
-    std::vector<astFunctionParameter*> parameters;
-    std::vector<astStatement*> statements;
+    vector<astFunctionParameter*> parameters;
+    vector<astStatement*> statements;
     bool isPrototype;
 };
 
@@ -219,7 +219,7 @@ struct astSimpleStatement : astStatement {
 
 struct astCompoundStatement : astStatement {
     astCompoundStatement();
-    std::vector<astStatement*> statements;
+    vector<astStatement*> statements;
 };
 
 struct astEmptyStatement : astSimpleStatement {
@@ -228,7 +228,7 @@ struct astEmptyStatement : astSimpleStatement {
 
 struct astDeclarationStatement : astSimpleStatement {
     astDeclarationStatement();
-    std::vector<astFunctionVariable*> variables;
+    vector<astFunctionVariable*> variables;
 };
 
 struct astExpressionStatement : astSimpleStatement {
@@ -246,7 +246,7 @@ struct astIfStatement : astSimpleStatement {
 struct astSwitchStatement : astSimpleStatement {
     astSwitchStatement();
     astExpression *expression;
-    std::vector<astStatement*> statements;
+    vector<astStatement*> statements;
 };
 
 struct astCaseLabelStatement : astSimpleStatement {
@@ -375,13 +375,13 @@ struct astArraySubscript : astExpression {
 struct astFunctionCall : astExpression {
     astFunctionCall();
     char *name;
-    std::vector<astExpression*> parameters;
+    vector<astExpression*> parameters;
 };
 
 struct astConstructorCall : astExpression {
     astConstructorCall();
     astType *type;
-    std::vector<astExpression*> parameters;
+    vector<astExpression*> parameters;
 };
 
 struct astUnaryExpression : astExpression {

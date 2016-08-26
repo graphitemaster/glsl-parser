@@ -120,12 +120,12 @@ void lexer::read(token &out) {
             }
         }
 
-        std::vector<char> numeric = readNumeric(isOctalish, isHexish);
+        vector<char> numeric = readNumeric(isOctalish, isHexish);
         if (position() != m_length && at() == '.') {
             isFloat = true;
             numeric.push_back('.');
             m_location.advanceColumn();
-            std::vector<char> others = readNumeric(isOctalish, isHexish);
+            vector<char> others = readNumeric(isOctalish, isHexish);
             numeric.reserve(numeric.size() + others.size());
             numeric.insert(numeric.end(), others.begin(), others.end());
         }
@@ -137,7 +137,7 @@ void lexer::read(token &out) {
                 numeric.push_back(ch1);
                 numeric.push_back(ch2);
                 m_location.advanceColumn(2);
-                std::vector<char> others = readNumeric(isOctalish, isHexish);
+                vector<char> others = readNumeric(isOctalish, isHexish);
                 numeric.reserve(numeric.size() + others.size());
                 numeric.insert(numeric.end(), others.begin(), others.end());
                 isFloat = true;
@@ -210,7 +210,7 @@ void lexer::read(token &out) {
     } else if (isChar(at()) || at() == '_') {
         // Identifiers
         out.m_type = kType_identifier;
-        std::vector<char> identifier;
+        vector<char> identifier;
         while (position() != m_length && (isChar(at()) || isDigit(at()) || at() == '_')) {
             identifier.push_back(at());
             m_location.advanceColumn();
@@ -438,8 +438,8 @@ void lexer::read(token &out) {
     }
 }
 
-std::vector<char> lexer::readNumeric(bool isOctalish, bool isHexish) {
-    std::vector<char> digits;
+vector<char> lexer::readNumeric(bool isOctalish, bool isHexish) {
+    vector<char> digits;
     if (isOctalish) {
         while (position() < m_length && isOctal(at())) {
             digits.push_back(at());

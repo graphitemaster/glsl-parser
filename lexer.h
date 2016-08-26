@@ -1,8 +1,6 @@
 #ifndef LEXER_HDR
 #define LEXER_HDR
-#include <stddef.h> // size_t
-
-#include <vector>
+#include "util.h"
 
 namespace glsl {
 
@@ -101,7 +99,7 @@ protected:
     void read(token &out);
     void read(token &out, bool);
 
-    std::vector<char> readNumeric(bool isOctal, bool isHex);
+    vector<char> readNumeric(bool isOctal, bool isHex);
 
 private:
     const char *m_data;
