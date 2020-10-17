@@ -17,6 +17,8 @@ add_library(glsl-parser
   util.h
   util.cpp)
 
+target_include_directories(glsl-parser PUBLIC "${PROJECT_SOURCE_DIR}")
+
 if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
   list(APPEND cxxflags -fno-rtti -fno-exceptions -Wall -Wextra)
 endif((CMAKE_CXX_COMPILER_ID STREQUAL "GNU") OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
