@@ -1,3 +1,4 @@
 *.o
 *.P
 /glsl-parser
+build
