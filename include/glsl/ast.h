@@ -1,7 +1,9 @@
-#ifndef AST_HDR
-#define AST_HDR
-#include <stdlib.h> // free, malloc, size_t
-#include "util.h"
+#ifndef GLSL_PARSER_AST_HDR
+#define GLSL_PARSER_AST_HDR
+
+#include <glsl/util.h>
+
+#include <cstdlib>
 
 namespace glsl {
 

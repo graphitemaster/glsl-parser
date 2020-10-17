@@ -1,7 +1,8 @@
-#include <string.h> // strcmp, memcpy
+#include <glsl/parser.h>
 
-#include "parser.h"
-#include "util.h"
+#include <glsl/util.h>
+
+#include <string.h> // strcmp, memcpy
 
 namespace glsl {
 
@@ -289,7 +290,7 @@ bool parser::isBuiltin() const {
     if (!isType(kType_keyword))
         return false;
     switch (m_token.asKeyword) {
-    #include "lexemes.h"
+    #include "glsl/lexemes.h"
         return true;
     default:
         break;
@@ -1611,7 +1612,7 @@ astBuiltin *parser::parseBuiltin() {
     }
 
     switch (m_token.asKeyword) {
-    #include "lexemes.h"
+    #include "glsl/lexemes.h"
         for (size_t i = 0; i < m_builtins.size(); i++) {
             if (m_builtins[i]->type == m_token.asKeyword) {
                 return m_builtins[i];

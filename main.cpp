@@ -1,14 +1,14 @@
+#include <glsl/parser.h>
+
 #include <stdio.h>  // fread, fclose, fprintf, stderr
 #include <string.h> // strcmp, memcpy
-
-#include "parser.h"
 
 using namespace glsl;
 
 #undef KEYWORD
 #define KEYWORD(X) #X,
 static const char *kTypes[] = {
-    #include "lexemes.h"
+    #include "glsl/lexemes.h"
 };
 #undef KEYWORD
 #define KEYWORD(...)
@@ -16,7 +16,7 @@ static const char *kTypes[] = {
 #undef OPERATOR
 #define OPERATOR(N, S, P) S,
 static const char *kOperators[] = {
-    #include "lexemes.h"
+    #include "glsl/lexemes.h"
 };
 #undef OPERATOR
 #define OPERATOR(...)

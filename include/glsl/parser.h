@@ -1,7 +1,10 @@
-#ifndef PARSE_HDR
-#define PARSE_HDR
-#include "lexer.h"
-#include "ast.h"
+#ifndef GLSL_PARSER_PARSER_HDR
+#define GLSL_PARSER_PARSER_HDR
+
+#include <glsl/ast.h>
+#include <glsl/lexer.h>
+
+#include <cstring>
 
 namespace glsl {
 

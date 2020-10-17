@@ -1,5 +1,6 @@
-#ifndef LEXER_HDR
-#define LEXER_HDR
+#ifndef GLSL_PARSER_LEXER_HDR
+#define GLSL_PARSER_LEXER_HDR
+
 #include "util.h"
 
 namespace glsl {

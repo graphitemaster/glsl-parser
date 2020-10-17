@@ -1,5 +1,6 @@
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef GLSL_PARSER_UTIL_HDR
+#define GLSL_PARSER_UTIL_HDR
+
 #include <stdarg.h> // va_list
 #include <vector>
 

@@ -1,5 +1,6 @@
 CXX ?= clang++
 CXXFLAGS = \
+	-I$(CURDIR)/include \
 	-fno-rtti \
 	-fno-exceptions \
 	-Wall \
@@ -10,11 +11,11 @@ CXXFLAGS = \
 BIN = glsl-parser
 
 SOURCES = \
-	ast.cpp \
-	lexer.cpp \
-	parser.cpp \
-	main.cpp \
-	util.cpp
+	lib/ast.cpp \
+	lib/lexer.cpp \
+	lib/parser.cpp \
+	lib/util.cpp \
+	main.cpp
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
