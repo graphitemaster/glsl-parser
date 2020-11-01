@@ -1,7 +1,9 @@
+#!/bin/env python3
+
 from glob import glob
 import os
 import subprocess
-from itertools import izip_longest as zip_longest
+from itertools import zip_longest
 
 def main():
     test_dir_name = 'tests'
@@ -31,8 +33,10 @@ def main():
                                        cwd=repo_dir)
 
             for line1, line2 in zip_longest(test, process.stdout):
-                expect = line1.rstrip().lstrip() if line1 else '<nothing>'
-                got = line2.decode('utf-8').rstrip().lstrip() if line2 else '<nothing>'
+                line1 = line1.strip() if line1 else '<nothing>'
+                line2 = line2.decode('utf-8').strip() if line2 else '<nothing>'
+                expect = line1 if line1 else '<nothing>'
+                got = line2 if line2 else '<nothing>'
                 if expect != got:
                     errors.append("expected `%s' got `%s'" % (expect, got))
             print('%s: %s' % (name, 'failed' if len(errors) else 'passed'))
