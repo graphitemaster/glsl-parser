@@ -759,7 +759,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
             return false;
     }
 
-    if (level.storage == kConst) {
+    if (level.storage == kConst || level.storage == kUniform) {
         // Can have a constant expression assignment
         if (isOperator(kOperator_assign)) {
             if (!next()) // skip '='
@@ -770,7 +770,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
                 fatal("not a valid constant expression");
                 return false;
             }
-        } else {
+        } else if (level.storage != kUniform) {
             fatal("const-qualified variable declared but not initialized");
             return false;
         }
