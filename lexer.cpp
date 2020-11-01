@@ -1,4 +1,4 @@
-#include <string.h> // memset, strlen
+#include <string.h> // memcpy, strlen
 #include <stdlib.h> // malloc, free
 #include <limits.h> // INT_MAX, UINT_MAX
 
@@ -24,8 +24,10 @@ static const operatorInfo kOperators[] = {
 #undef OPERATOR
 #define OPERATOR(...)
 
-token::token() {
-    memset(this, 0, sizeof *this);
+token::token()
+    : m_type(0)
+{
+    asDouble = 0.0;
 }
 
 int token::precedence() const {
