@@ -1,2 +1,2 @@
-uniform float _float1;
-uniform float _float2 = 10.0f;
+uniform float float1;
+uniform float float2 = 10.0f;
