@@ -123,6 +123,7 @@ void lexer::read(token &out) {
         vector<char> numeric = readNumeric(isOctalish, isHexish);
         if (position() != m_length && at() == '.') {
             isFloat = true;
+            isOctalish = false;
             numeric.push_back('.');
             m_location.advanceColumn();
             vector<char> others = readNumeric(isOctalish, isHexish);
@@ -141,6 +142,7 @@ void lexer::read(token &out) {
                 numeric.reserve(numeric.size() + others.size());
                 numeric.insert(numeric.end(), others.begin(), others.end());
                 isFloat = true;
+                isOctalish = false;
             } else {
                 m_error = "invalid numeric literal";
                 return;
@@ -151,9 +153,11 @@ void lexer::read(token &out) {
             ch1 = at(1);
             if (at() == 'f' || at() == 'F') {
                 isFloat = true;
+                isOctalish = false;
             } else if ((at() == 'l' && ch1 == 'f') || (at() == 'L' && ch1 == 'F')) {
                 isFloat = false;
                 isDouble = true;
+                isOctalish = false;
                 m_location.advanceColumn();
             } else if (at() == 'u' || at() == 'U') {
                 if (isFloat) {
