@@ -17,6 +17,11 @@ A test-suite and GLSL source-generator is included to get you started.
 
 Check out the superior diagnostics [here](EXAMPLE_ERRORS.md)
 
+### Known limitations
+  * Does not support preprocessor directives
+  * Does not handle new-line termination with the backslack character `\`
+  * Not all of GLSL is supported, if you run into a missing feature open an issue.
+
 ### Possible uses
   * Verify a shader without running it
   * Find hard-to-find syntax or semantic errors with the superior diagnostics
