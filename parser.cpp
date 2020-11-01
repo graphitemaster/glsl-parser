@@ -6,10 +6,12 @@
 namespace glsl {
 
 parser::parser(const char *source, const char *fileName)
-    : m_lexer(source)
+    : m_ast(0)
+    , m_lexer(source)
     , m_fileName(fileName)
 {
     m_oom = strnew("Out of memory");
+    m_error = strnew("");
 }
 
 parser::~parser() {
@@ -1006,23 +1008,23 @@ CHECK_RETURN astExpression *parser::parseUnary(endCondition end) {
                 return 0;
             }
             astFieldOrSwizzle *expression = GC_NEW(astExpression) astFieldOrSwizzle();
-            // check to see if the field exists
-            if (((astType*)operand)->builtin) {
-                astStruct *type = (astStruct*)getType(operand);
-                if (type) {
-                    astVariable *field = 0;
-                    for (size_t i = 0; i < type->fields.size(); i++) {
-                        if (strcmp(type->fields[i]->name, m_token.asIdentifier))
-                            continue;
-                        field = type->fields[i];
-                        break;
-                    }
-                    if (!field) {
-                        fatal("field `%s' does not exist in structure `%s'", m_token.asIdentifier, type->name);
-                        return 0;
-                    }
+
+            astType *type = getType(operand);
+            if (type && !type->builtin) {
+                astVariable *field = 0;
+                astStruct *kind = (astStruct*)type;
+                for (size_t i = 0; i < kind->fields.size(); i++) {
+                    if (strcmp(kind->fields[i]->name, m_token.asIdentifier))
+                        continue;
+                    field = kind->fields[i];
+                    break;
+                }
+                if (!field) {
+                    fatal("field `%s' does not exist in structure `%s'", m_token.asIdentifier, kind->name);
+                    return 0;
                 }
             }
+
             expression->operand = operand;
             expression->name = strnew(m_token.asIdentifier);
             operand = expression;
