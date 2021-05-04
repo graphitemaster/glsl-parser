@@ -19,8 +19,10 @@ Check out the superior diagnostics [here](EXAMPLE_ERRORS.md)
 
 ### Known limitations
   * Does not support preprocessor directives
+    * Does support `#version` and `#extension` though.
   * Does not handle new-line termination with the backslack character `\`
   * Not all of GLSL is supported, if you run into a missing feature open an issue.
+  * None of the builtin functions or variables are provided, you must provide those yourself.
 
 ### Possible uses
   * Verify a shader without running it
