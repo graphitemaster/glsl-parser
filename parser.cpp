@@ -313,8 +313,28 @@ CHECK_RETURN astTU *parser::parse(int type) {
             return 0;
         }
 
-        if (isType(kType_eof))
+        if (isType(kType_eof)) {
             break;
+        }
+
+        if (isType(kType_directive)) {
+            if (m_token.asDirective.type == directive::kVersion) {
+                if (m_ast->versionDirective) {
+                    fatal("Multiple version directives not allowed");
+                    return 0;
+                }
+                astVersionDirective *directive = GC_NEW(astVersionDirective) astVersionDirective();
+                directive->version = m_token.asDirective.asVersion.version;
+                directive->type = m_token.asDirective.asVersion.type;
+                m_ast->versionDirective = directive;
+            } else if (m_token.asDirective.type == directive::kExtension) {
+                astExtensionDirective *extension = GC_NEW(astExtensionDirective) astExtensionDirective();
+                extension->behavior = m_token.asDirective.asExtension.behavior;
+                extension->name = strnew(m_token.asDirective.asExtension.name);
+                m_ast->extensionDirectives.push_back(extension);
+            }
+            continue;
+        }
 
         vector<topLevel> items;
         if (!parseTopLevel(items))

@@ -23,6 +23,7 @@ const char *astStatement::name() const {
 
 astTU::astTU(int type)
     : type(type)
+    , versionDirective(0)
 {
 }
 
@@ -41,6 +42,20 @@ astInterfaceBlock::astInterfaceBlock()
     : astType(false)
     , name(0)
     , storage(0)
+{
+}
+
+astExtensionDirective::astExtensionDirective()
+    : astType(false)
+    , name(0)
+    , behavior(-1)
+{
+}
+
+astVersionDirective::astVersionDirective()
+    : astType(false)
+    , version(-1)
+    , type(-1)
 {
 }
 

@@ -12,6 +12,7 @@ TYPE(operator)
 TYPE(semicolon)
 TYPE(scope_begin)
 TYPE(scope_end)
+TYPE(directive)
 
 // Keywords
 KEYWORD(attribute)

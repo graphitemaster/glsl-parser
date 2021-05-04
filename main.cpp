@@ -589,7 +589,44 @@ static void printInterfaceBlock(astInterfaceBlock *block) {
     printf("};\n");
 }
 
+static void printVersionDirective(astVersionDirective *version) {
+    printf("#version %d ", version->version);
+    switch (version->type) {
+    case kCore:
+        printf("core\n");
+        break;
+    case kCompatibility:
+        printf("compatibility\n");
+        break;
+    case kES:
+        printf("es\n");
+        break;
+    }
+}
+
+static void printExtensionDirective(astExtensionDirective *extension) {
+    printf("#extension %s : ", extension->name);
+    switch (extension->behavior) {
+    case kEnable:
+        printf("enable\n");
+        break;
+    case kRequire:
+        printf("require\n");
+        break;
+    case kWarn:
+        printf("warn\n");
+        break;
+    case kDisable:
+        printf("disable\n");
+        break;
+    }
+}
+
 static void printTU(astTU *tu) {
+    if (tu->versionDirective)
+        printVersionDirective(tu->versionDirective);
+    for (size_t i = 0; i < tu->extensionDirectives.size(); i++)
+        printExtensionDirective(tu->extensionDirectives[i]);
     for (size_t i = 0; i < tu->structures.size(); i++)
         printStructure(tu->structures[i]);
     for (size_t i = 0; i < tu->interfaceBlocks.size(); i++)

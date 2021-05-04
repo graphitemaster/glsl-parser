@@ -39,7 +39,6 @@ struct topLevel {
     vector<astConstantExpression*> arraySizes;
     size_t arrayOnTypeOffset;
     vector<astLayoutQualifier*> layoutQualifiers;
-    vector<astStruct*> structures;
     bool isInvariant;
     bool isPrecise;
     bool isArray;

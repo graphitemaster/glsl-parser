@@ -90,10 +90,26 @@ int lexer::at(int offset) const {
     return 0;
 }
 
+void lexer::skipWhitespace(bool allowNewlines) {
+    while (position() < m_length && isSpace(at())) {
+        if (at() == '\n') {
+            if (allowNewlines) {
+                m_location.advanceLine();
+            } else {
+                break;
+            }
+        } else {
+            m_location.advanceColumn();
+        }
+    }
+}
+
 void lexer::read(token &out) {
     // Any previous identifier must be freed
     if (out.m_type == kType_identifier)
         free(out.asIdentifier);
+    else if (out.m_type == kType_directive && out.asDirective.type == directive::kExtension)
+        free(out.asDirective.asExtension.name);
 
     // TODO: Line continuation (backslash `\'.)
     if (position() == m_length) {
@@ -239,6 +255,128 @@ void lexer::read(token &out) {
             out.asKeyword = int(i);
             break;
         }
+    } else if (at() == '#') {
+        m_location.advanceColumn(); // Skip '#'.
+
+        vector<char> chars;
+        while (isChar(at())) {
+            chars.push_back(at());
+            m_location.advanceColumn();
+        }
+
+        // Directive should immediately proceed the # token.
+        if (chars.empty()) {
+            m_error = "Expected directive";
+            return;
+        }
+
+        if (!strcmp(&chars[0], "version")) {
+            out.asDirective.type = directive::kVersion;
+
+            // version [0-9]+ (core|compatibility|es)?
+            skipWhitespace(false);
+
+            vector<char> digits = readNumeric(false, false);
+            if (digits.empty()) {
+                m_error = "Expected version number in #version directive";
+                return;
+            }
+            digits.push_back('\0');
+
+            long long value = strtoll(&digits[0], 0, 10);
+            out.asDirective.asVersion.version = value;
+            out.asDirective.asVersion.type = kCore;
+
+            skipWhitespace(false);
+
+            vector<char> chars;
+            while (isChar(at())) {
+                chars.push_back(at());
+                m_location.advanceColumn();
+            }
+
+            if (!chars.empty()) {
+                chars.push_back('\0');
+                if (!strcmp(&chars[0], "core")) {
+                    // Do nothing, already core.
+                } else if (!strcmp(&chars[0], "compatibility")) {
+                    out.asDirective.asVersion.type = kCompatibility;
+                } else if (!strcmp(&chars[0], "es")) {
+                    out.asDirective.asVersion.type = kES;
+                } else {
+                    m_error = "Invalid profile in #version directive";
+                    return;
+                }
+            }
+        } else if (!strcmp(&chars[0], "extension")) {
+            out.asDirective.type = directive::kExtension;
+
+            // extension [a-zA-Z_]+ : (enable|require|warn|disable)
+            skipWhitespace(false);
+
+            vector<char> extension;
+            while (isChar(at())) {
+                extension.push_back(at());
+                m_location.advanceColumn();
+            }
+            extension.push_back('\0');
+
+            if (extension.empty()) {
+                m_error = "Expected extension name in #extension directive";
+                return;
+            }
+
+            skipWhitespace(false);
+
+            if (at() != ':') {
+                m_error = "Expected `:' in #extension directive";
+                return;
+            }
+
+            m_location.advanceColumn(); // Skip ':'.
+
+            skipWhitespace(false);
+
+            vector<char> behavior;
+            while (isChar(at())) {
+                behavior.push_back(at());
+                m_location.advanceColumn();
+            }
+            behavior.push_back('\0');
+
+            if (behavior.empty()) {
+                m_error = "Expected behavior in #extension directive";
+                return;
+            }
+
+            if (!strcmp(&behavior[0], "enable")) {
+                out.asDirective.asExtension.behavior = kEnable;
+            } else if (!strcmp(&behavior[0], "require")) {
+                out.asDirective.asExtension.behavior = kRequire;
+            } else if (!strcmp(&behavior[0], "warn")) {
+                out.asDirective.asExtension.behavior = kWarn;
+            } else if (!strcmp(&behavior[0], "disable")) {
+                out.asDirective.asExtension.behavior = kDisable;
+            } else {
+                m_error = "Unexpected behavior in #extension directive";
+                return;
+            }
+
+            // Do this late when nothing can fail so we don't leak memory.
+            size_t name_len = strlen(&extension[0]);
+            char *name = (char*)malloc(name_len + 1);
+            if (!name) {
+                m_error = "Out of memory";
+                return;
+            }
+            memcpy(name, &extension[0], name_len + 1);
+            out.asDirective.asExtension.name = name;
+        } else {
+            m_error = "Unsupported directive";
+            return;
+        }
+
+        out.m_type = kType_directive;
     } else {
         switch (at()) {
         // Non operators
@@ -248,13 +386,8 @@ void lexer::read(token &out) {
         case '\v':
         case '\r':
         case ' ':
-            while (position() < m_length && isSpace(at())) {
-                if (at() == '\n')
-                    m_location.advanceLine();
-                else
-                    m_location.advanceColumn();
-            }
-            out.m_type = kType_whitespace; // Whitespace already skippped
+            skipWhitespace(true);
+            out.m_type = kType_whitespace; // Whitespace already skipped.
             break;
         case ';':
             out.m_type = kType_semicolon;
@@ -268,7 +401,6 @@ void lexer::read(token &out) {
             out.m_type = kType_scope_end;
             m_location.advanceColumn();
             break;
-
         // Operators
         case '.':
             out.m_type = kType_operator;

@@ -34,6 +34,19 @@ enum {
 #undef OPERATOR
 #define OPERATOR(...)
 
+enum {
+    kCore,
+    kCompatibility,
+    kES
+};
+
+enum {
+    kEnable,
+    kRequire,
+    kWarn,
+    kDisable
+};
+
 struct keywordInfo {
     const char *name;
     int type;
@@ -43,6 +56,26 @@ struct operatorInfo {
     const char *name;
     const char *string;
     int precedence;
+};
+
+struct directive {
+    enum {
+        kVersion,
+        kExtension
+    };
+
+    int type; // kVersion, kExtension
+
+    union {
+        struct {
+            int version;
+            int type; // kCore, kCompatibility, kES
+        } asVersion;
+        struct {
+            char* name;
+            int behavior; // kEnable, kRequire, kWarn, kDisable
+        } asExtension;
+    };
 };
 
 struct token {
@@ -55,6 +88,7 @@ private:
     int m_type;
     union {
         char *asIdentifier;
+        directive asDirective;
         int asInt;
         int asKeyword;
         int asOperator;
@@ -98,6 +132,8 @@ protected:
 
     void read(token &out);
     void read(token &out, bool);
+
+    void skipWhitespace(bool allowNewlines = false);
 
     vector<char> readNumeric(bool isOctal, bool isHex);
 

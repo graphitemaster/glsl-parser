@@ -46,6 +46,8 @@ struct astLayoutQualifier;
 struct astStatement;
 struct astStruct;
 struct astInterfaceBlock;
+struct astVersionDirective;
+struct astExtensionDirective;
 struct astVariable;
 
 struct astTU {
@@ -60,12 +62,14 @@ struct astTU {
         kFragment
     };
 
+    int type;
+
+    astVersionDirective* versionDirective;
+    vector<astExtensionDirective*> extensionDirectives;
     vector<astFunction*> functions;
     vector<astGlobalVariable*> globals;
     vector<astStruct*> structures;
     vector<astInterfaceBlock*> interfaceBlocks;
-
-    int type;
 
 private:
     astTU(const astTU&);
@@ -93,6 +97,18 @@ struct astInterfaceBlock : astType {
     char *name;
     int storage; // one of the storage qualifiers: kIn, kOut, kUniform, kBuffer
     vector<astVariable*> fields;
+};
+
+struct astVersionDirective : astType {
+    astVersionDirective();
+    int version;
+    int type;
+};
+
+struct astExtensionDirective : astType {
+    astExtensionDirective();
+    char *name;
+    int behavior;
 };
 
 typedef astExpression astConstantExpression;
