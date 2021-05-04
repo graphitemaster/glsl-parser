@@ -45,6 +45,7 @@ struct astExpression;
 struct astLayoutQualifier;
 struct astStatement;
 struct astStruct;
+struct astInterfaceBlock;
 struct astVariable;
 
 struct astTU {
@@ -62,6 +63,7 @@ struct astTU {
     vector<astFunction*> functions;
     vector<astGlobalVariable*> globals;
     vector<astStruct*> structures;
+    vector<astInterfaceBlock*> interfaceBlocks;
 
     int type;
 
@@ -83,6 +85,13 @@ struct astBuiltin : astType {
 struct astStruct : astType {
     astStruct();
     char *name;
+    vector<astVariable*> fields;
+};
+
+struct astInterfaceBlock : astType {
+    astInterfaceBlock();
+    char *name;
+    int storage; // one of the storage qualifiers: kIn, kOut, kUniform, kBuffer
     vector<astVariable*> fields;
 };
 

@@ -578,9 +578,22 @@ static void printStructure(astStruct *structure) {
     print("};\n");
 }
 
+static void printInterfaceBlock(astInterfaceBlock *block) {
+    printStorage(block->storage);
+    printf("%s ", block->name);
+    printf("{\n");
+    for (size_t i = 0; i < block->fields.size(); i++) {
+        printVariable(block->fields[i]);
+        print(";\n");
+    }
+    printf("};\n");
+}
+
 static void printTU(astTU *tu) {
     for (size_t i = 0; i < tu->structures.size(); i++)
         printStructure(tu->structures[i]);
+    for (size_t i = 0; i < tu->interfaceBlocks.size(); i++)
+        printInterfaceBlock(tu->interfaceBlocks[i]);
     for (size_t i = 0; i < tu->globals.size(); i++)
         printGlobalVariable(tu->globals[i]);
     for (size_t i = 0; i < tu->functions.size(); i++)

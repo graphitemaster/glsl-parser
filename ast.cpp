@@ -37,6 +37,13 @@ astStruct::astStruct()
 {
 }
 
+astInterfaceBlock::astInterfaceBlock()
+    : astType(false)
+    , name(0)
+    , storage(0)
+{
+}
+
 astBuiltin::astBuiltin(int type)
     : astType(true)
     , type(type)

@@ -96,6 +96,7 @@ protected:
     // Type parsers
     astBuiltin *parseBuiltin();
     astStruct *parseStruct();
+    astInterfaceBlock *parseInterfaceBlock(int storage);
 
     CHECK_RETURN astFunction *parseFunction(const topLevel &parse);
 
@@ -134,6 +135,10 @@ protected:
     astType* getType(astExpression *expression);
 private:
     typedef vector<astVariable *> scope;
+
+    // Specialized in .cpp
+    template<typename T>
+    CHECK_RETURN T *parseBlock(const char* type);
 
     astTU *m_ast;
     lexer m_lexer;

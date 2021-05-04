@@ -592,6 +592,55 @@ CHECK_RETURN bool parser::parseLayout(topLevel &current) {
     return true;
 }
 
+static bool isInterfaceBlockStorage(int storage) {
+    return storage == kIn
+        || storage == kOut
+        || storage == kUniform
+        || storage == kBuffer;
+}
+
+static bool isReservedKeyword(int keyword) {
+    return keyword == kKeyword_common
+        || keyword == kKeyword_partition
+        || keyword == kKeyword_active
+        || keyword == kKeyword_asm
+        || keyword == kKeyword_class
+        || keyword == kKeyword_union
+        || keyword == kKeyword_enum
+        || keyword == kKeyword_typedef
+        || keyword == kKeyword_template
+        || keyword == kKeyword_this
+        || keyword == kKeyword_resource
+        || keyword == kKeyword_goto
+        || keyword == kKeyword_inline
+        || keyword == kKeyword_noinline
+        || keyword == kKeyword_public
+        || keyword == kKeyword_static
+        || keyword == kKeyword_extern
+        || keyword == kKeyword_external
+        || keyword == kKeyword_interface
+        || keyword == kKeyword_long
+        || keyword == kKeyword_short
+        || keyword == kKeyword_half
+        || keyword == kKeyword_fixed
+        || keyword == kKeyword_unsigned
+        || keyword == kKeyword_superp
+        || keyword == kKeyword_input
+        || keyword == kKeyword_output
+        || keyword == kKeyword_hvec2
+        || keyword == kKeyword_hvec3
+        || keyword == kKeyword_hvec4
+        || keyword == kKeyword_fvec2
+        || keyword == kKeyword_fvec3
+        || keyword == kKeyword_fvec4
+        || keyword == kKeyword_sampler3DRect
+        || keyword == kKeyword_filter
+        || keyword == kKeyword_sizeof
+        || keyword == kKeyword_cast
+        || keyword == kKeyword_namespace
+        || keyword == kKeyword_using;
+}
+
 CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuation) {
     vector<topLevel> items;
     while (!isBuiltin() && !isType(kType_identifier)) {
@@ -600,20 +649,38 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
         if (IS_TYPE(peek, kType_eof))
             return false;
 
-        topLevel next;
+        topLevel item;
         if (continuation)
-            next = *continuation;
+            item = *continuation;
 
-        if (!parseStorage(next))       return false;
-        if (!parseAuxiliary(next))     return false;
-        if (!parseInterpolation(next)) return false;
-        if (!parsePrecision(next))     return false;
-        if (!parseInvariant(next))     return false;
-        if (!parsePrecise(next))       return false;
-        if (!parseMemory(next))        return false;
-        if (!parseLayout(next))        return false;
+        if (!parseStorage(item))       return false;
+        if (!parseAuxiliary(item))     return false;
+        if (!parseInterpolation(item)) return false;
+        if (!parsePrecision(item))     return false;
+        if (!parseInvariant(item))     return false;
+        if (!parsePrecise(item))       return false;
+        if (!parseMemory(item))        return false;
+        if (!parseLayout(item))        return false;
 
-        if (isKeyword(kKeyword_struct)) {
+        if (isType(kType_keyword) && isReservedKeyword(m_token.asKeyword)) {
+            fatal("cannot use a reserved keyword");
+            return false;
+        }
+
+        // Check for interface block.
+        if (isType(kType_identifier) && isInterfaceBlockStorage(item.storage)) {
+            // if (!next()) return false; // skip identifier
+            astInterfaceBlock *unique = parseInterfaceBlock(item.storage);
+            if (!unique)
+                return false;
+            m_ast->interfaceBlocks.push_back(unique);
+            if (isType(kType_semicolon)) {
+                return true;
+            } else {
+                level.type = unique;
+            }
+        } else if (isKeyword(kKeyword_struct)) {
+            if (!next()) return 0; // skip struct
             astStruct *unique = parseStruct();
             if (!unique)
                 return false;
@@ -625,7 +692,7 @@ CHECK_RETURN bool parser::parseTopLevelItem(topLevel &level, topLevel *continuat
                 level.type = unique;
             }
         } else {
-            items.push_back(next);
+            items.push_back(item);
         }
     }
 
@@ -811,10 +878,9 @@ CHECK_RETURN bool parser::parseTopLevel(vector<topLevel> &items) {
     return true;
 }
 
-CHECK_RETURN astStruct *parser::parseStruct() {
-    if (!next()) return 0; // skip struct
-
-    astStruct *unique = GC_NEW(astType) astStruct;
+template<typename T>
+CHECK_RETURN T *parser::parseBlock(const char* type) {
+    T *unique = GC_NEW(astType) T;
 
     if (isType(kType_identifier)) {
         unique->name = strnew(m_token.asIdentifier);
@@ -822,7 +888,7 @@ CHECK_RETURN astStruct *parser::parseStruct() {
     }
 
     if (!isType(kType_scope_begin)) {
-        fatal("expected '{' for structure definition");
+        fatal("expected '{' for %s definition", type);
         return 0;
     }
 
@@ -850,6 +916,52 @@ CHECK_RETURN astStruct *parser::parseStruct() {
     if (!next()) return 0; // skip '}'
 
     return unique;
+}
+
+CHECK_RETURN astStruct *parser::parseStruct() {
+    return parseBlock<astStruct>("structure");
+}
+
+CHECK_RETURN astInterfaceBlock *parser::parseInterfaceBlock(int storage) {
+    astInterfaceBlock* unique = 0;
+    switch (storage) {
+    case kIn:
+        unique = parseBlock<astInterfaceBlock>("input block");
+        break;
+    case kOut:
+        unique = parseBlock<astInterfaceBlock>("outout block");
+        break;
+    case kUniform:
+        unique = parseBlock<astInterfaceBlock>("uniform block");
+        break;
+    case kBuffer:
+        unique = parseBlock<astInterfaceBlock>("buffer block");
+        break;
+    }
+
+    if (!unique) {
+        return 0;
+    }
+
+    // When there's no identifier then implicitly declare these as globals
+    // in their respective places.
+    if (!isType(kType_identifier)) {
+        const size_t n_fields = unique->fields.size();
+        for (size_t i = 0; i < n_fields; i++) {
+            // Check if the variable already exists
+            astVariable *variable = unique->fields[i];
+            if (findVariable(variable->name)) {
+                fatal("'%s` is already declared in this scope", variable->name);
+                return 0;
+            }
+            m_scopes.back().push_back(unique->fields[i]);
+        }
+    }
+
+    unique->storage = storage;
+    return unique;
+
+    return 0;
 }
 
 CHECK_RETURN astExpression *parser::parseBinary(int lhsPrecedence, astExpression *lhs, endCondition end) {

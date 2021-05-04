@@ -1,0 +1,28 @@
+uniform uniform_block {
+float x;
+};
+in input_block {
+float y;
+};
+out output_block {
+float z;
+};
+buffer buffer_block {
+float w;
+};
+uniform uniform_block {
+float x;
+};
+in input_block {
+float y;
+};
+out output_block {
+float z;
+};
+buffer buffer_block {
+float w;
+};
+uniform_block uniform_data;
+input_block input_data;
+output_block output_data;
+buffer_block buffer_data;
