@@ -553,8 +553,11 @@ static void printFunctionParameter(astFunctionParameter *parameter) {
 static void printFunction(astFunction *function) {
     printType(function->returnType);
     print(" %s(", function->name);
-    for (size_t i = 0; i < function->parameters.size(); i++)
+    for (size_t i = 0; i < function->parameters.size(); i++) {
         printFunctionParameter(function->parameters[i]);
+        if (i < function->parameters.size()-1)
+        	print(", ");
+    }
     print(")");
     if (function->isPrototype) {
         print(";\n");
